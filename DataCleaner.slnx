@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DataCleaner.App/DataCleaner.App.csproj" />
+    <Project Path="src/DataCleaner.Application/DataCleaner.Application.csproj" />
+    <Project Path="src/DataCleaner.Domain/DataCleaner.Domain.csproj" />
+    <Project Path="src/DataCleaner.Infrastructure/DataCleaner.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DataCleaner.Application.Tests/DataCleaner.Application.Tests.csproj" />
+    <Project Path="tests/DataCleaner.Domain.Tests/DataCleaner.Domain.Tests.csproj" />
+    <Project Path="tests/DataCleaner.Infrastructure.Tests/DataCleaner.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

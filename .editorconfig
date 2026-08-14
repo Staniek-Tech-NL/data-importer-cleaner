@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,xaml}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_style = space
+indent_size = 2
+
+[**/DataType.cs]
+# Integer and Decimal are deliberate domain vocabulary here, not CLR type names.
+dotnet_diagnostic.CA1720.severity = none
+
+[tests/**/*.cs]
+# Method_Name_Expectation is intentionally used for test readability.
+dotnet_diagnostic.CA1707.severity = none
+
+[**/*ViewModel.cs]
+# WPF binding targets instance properties even when their initial values are constant.
+dotnet_diagnostic.CA1822.severity = none
