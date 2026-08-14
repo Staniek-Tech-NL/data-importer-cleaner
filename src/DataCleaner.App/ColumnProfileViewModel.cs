@@ -27,6 +27,7 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
     private string _countryAliases = string.Empty;
     private bool _normalizeDate;
     private bool _normalizeDecimal;
+    private bool _isDuplicateKey;
 
     public ColumnProfileViewModel(int columnIndex, ColumnProfile profile, Action mappingChanged)
     {
@@ -191,6 +192,12 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
     {
         get => _normalizeDecimal;
         set => SetConfigurationField(ref _normalizeDecimal, value);
+    }
+
+    public bool IsDuplicateKey
+    {
+        get => _isDuplicateKey;
+        set => SetConfigurationField(ref _isDuplicateKey, value);
     }
 
     public void ResetValidationConfiguration()

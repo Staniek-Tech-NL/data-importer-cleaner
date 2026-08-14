@@ -37,7 +37,7 @@ public sealed class ImportProfileRepositoryTests
             await repository.SaveAsync(profile);
             profile.UpdateConfiguration(
                 "pl-PL",
-                [new ColumnMapping("Email", "PrimaryEmail")],
+                [new ColumnMapping("Email", "PrimaryEmail", isDuplicateKey: true)],
                 validationRules:
                 [
                     new ValidationRuleDefinition(
@@ -73,6 +73,7 @@ public sealed class ImportProfileRepositoryTests
             Assert.Equal(2, restored.ProfileVersion);
             Assert.Equal("pl-PL", restored.CultureName);
             Assert.Equal("PrimaryEmail", Assert.Single(restored.ColumnMappings).TargetField);
+            Assert.True(Assert.Single(restored.ColumnMappings).IsDuplicateKey);
             Assert.Equal(2, restored.ValidationRules.Count);
             Assert.Contains(restored.ValidationRules, rule => rule.Kind == ValidationRuleKind.Email);
             Assert.Equal(4, restored.CleaningRules.Count);

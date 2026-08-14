@@ -6,6 +6,14 @@ public enum DuplicateComparisonSource
     OriginalSourceValue
 }
 
+public enum DuplicateResolutionAction
+{
+    MarkForReview = 0,
+    KeepFirst,
+    KeepLast,
+    RemoveAll
+}
+
 public sealed record DuplicateDefinition
 {
     public DuplicateDefinition(

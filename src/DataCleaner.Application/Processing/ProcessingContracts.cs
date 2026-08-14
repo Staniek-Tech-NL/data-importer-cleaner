@@ -1,6 +1,7 @@
 using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Data;
 using DataCleaner.Domain.Validation;
+using DataCleaner.Domain.Duplicates;
 
 namespace DataCleaner.Application.Processing;
 
@@ -68,5 +69,37 @@ public interface IDataCleaningService
         ImportedDataset dataset,
         IEnumerable<CleaningRuleDefinition> definitions,
         string cultureName,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record DuplicateGroup(
+    int GroupNumber,
+    IReadOnlyList<long> RowNumbers,
+    IReadOnlyList<object?> KeyValues);
+
+public sealed record DuplicateDetectionResult(
+    DateTimeOffset CompletedAtUtc,
+    IReadOnlyList<DuplicateGroup> Groups)
+{
+    public int DuplicateRowCount => Groups.Sum(group => group.RowNumbers.Count);
+}
+
+public sealed record DuplicateResolutionResult(
+    ImportedDataset Dataset,
+    DuplicateDetectionResult Detection,
+    DuplicateResolutionAction Action,
+    IReadOnlyList<long> RemovedRowNumbers);
+
+public interface IDuplicateDetectionService
+{
+    Task<DuplicateDetectionResult> DetectAsync(
+        ImportedDataset dataset,
+        DuplicateDefinition definition,
+        CancellationToken cancellationToken = default);
+
+    Task<DuplicateResolutionResult> ResolveAsync(
+        ImportedDataset dataset,
+        DuplicateDefinition definition,
+        DuplicateResolutionAction action,
         CancellationToken cancellationToken = default);
 }

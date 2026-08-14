@@ -17,3 +17,9 @@ Cleaning definitions bind an ordered rule to a source column. Available rules tr
 The cleaning engine creates new cells and rows rather than mutating imported values. Each cell continues to expose its original source, parsed value and current working value. Every effective rule application produces a before/after change entry, while modified row state can coexist with unrelated states such as duplicate.
 
 Cleaning configuration is stored with versioned import profiles. The application validates before cleaning, runs rules in deterministic order, profiles the resulting data and validates again so users can distinguish source issues from remaining output issues.
+
+Duplicate detection compares exact invariant representations of current working values by default, with original source comparison available through the application contract. A definition can contain one column or a composite key. Rows with an incomplete key are skipped, and groups plus their members are ordered by source row number.
+
+Resolution is separate from detection. Mark-for-review keeps all rows and adds the duplicate state alongside existing states. Keep-first and keep-last retain a deterministic representative, while remove-all excludes every grouped row from a new in-memory dataset. The detection result retains group membership and key values for review even after rows are removed.
+
+Duplicate-key selection is part of persisted source-column mapping configuration, so a versioned import profile can reproduce the same composite key on a later import.

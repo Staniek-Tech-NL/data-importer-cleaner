@@ -36,3 +36,8 @@ All notable changes to this project will be documented in this file.
 - Ordered cleaning passes that preserve source, parsed and current values.
 - Before/after change review with validation before and after cleaning.
 - Cleaning rule configuration persisted with versioned import profiles.
+- Exact duplicate detection over one or more normalized working-value columns.
+- Stable duplicate groups with source row numbers and auditable key values.
+- Mark-for-review, keep-first, keep-last and remove-all duplicate resolution actions.
+- Dedicated WPF duplicate-key configuration and group review screen.
+- Duplicate-key column selection persisted with versioned import profiles.

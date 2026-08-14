@@ -94,6 +94,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             mappingEntity.SourceColumn = mapping.SourceColumn;
             mappingEntity.TargetField = mapping.TargetField;
             mappingEntity.IsIgnored = mapping.IsIgnored;
+            mappingEntity.IsDuplicateKey = mapping.IsDuplicateKey;
         }
 
         var existingRules = entity.ValidationRules.ToArray();
@@ -188,7 +189,8 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             .Select(mapping => new ColumnMapping(
                 mapping.SourceColumn,
                 mapping.TargetField,
-                mapping.IsIgnored)),
+                mapping.IsIgnored,
+                mapping.IsDuplicateKey)),
         entity.ValidationRules
             .OrderBy(rule => rule.Id)
             .Select(ToDomain),

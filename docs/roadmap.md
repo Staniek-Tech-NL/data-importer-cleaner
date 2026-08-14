@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M6 — Deduplication
-**Completed milestone:** M5 — Cleaning
+**Current milestone:** M7 — Export and history
+**Completed milestone:** M6 — Deduplication
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -45,9 +45,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.5.0 — Deduplication
 
-- exact normalized matching;
-- single and composite keys;
-- duplicate groups and resolution actions.
+- [x] exact normalized matching;
+- [x] single and composite keys;
+- [x] duplicate groups and resolution actions.
 
 ### v0.6.0 — Export and history
 

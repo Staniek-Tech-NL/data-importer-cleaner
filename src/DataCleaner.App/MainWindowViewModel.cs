@@ -12,6 +12,7 @@ using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Data;
 using DataCleaner.Domain.Profiles;
 using DataCleaner.Domain.Validation;
+using DataCleaner.Domain.Duplicates;
 
 namespace DataCleaner.App;
 
@@ -20,6 +21,7 @@ public sealed class MainWindowViewModel(
     IDataProfilingService profilingService,
     IDataValidationService validationService,
     IDataCleaningService cleaningService,
+    IDuplicateDetectionService duplicateDetectionService,
     IImportProfileRepository profileRepository) : INotifyPropertyChanged
 {
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
@@ -39,6 +41,9 @@ public sealed class MainWindowViewModel(
     private string _validationSummary = "Validation has not been run.";
     private IReadOnlyList<CleaningChangeViewModel> _cleaningChanges = [];
     private string _cleaningSummary = "Cleaning has not been run.";
+    private IReadOnlyList<DuplicateGroupViewModel> _duplicateGroups = [];
+    private string _duplicateSummary = "Duplicate detection has not been run.";
+    private DuplicateResolutionAction _selectedDuplicateAction = DuplicateResolutionAction.MarkForReview;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -116,6 +121,27 @@ public sealed class MainWindowViewModel(
     {
         get => _cleaningSummary;
         private set => SetField(ref _cleaningSummary, value);
+    }
+
+    public IReadOnlyList<DuplicateResolutionAction> AvailableDuplicateActions { get; } =
+        Enum.GetValues<DuplicateResolutionAction>();
+
+    public DuplicateResolutionAction SelectedDuplicateAction
+    {
+        get => _selectedDuplicateAction;
+        set => SetField(ref _selectedDuplicateAction, value);
+    }
+
+    public IReadOnlyList<DuplicateGroupViewModel> DuplicateGroups
+    {
+        get => _duplicateGroups;
+        private set => SetField(ref _duplicateGroups, value);
+    }
+
+    public string DuplicateSummary
+    {
+        get => _duplicateSummary;
+        private set => SetField(ref _duplicateSummary, value);
     }
 
     public IReadOnlyList<ImportProfile> SavedProfiles
@@ -263,7 +289,8 @@ public sealed class MainWindowViewModel(
             .Select(column => new ColumnMapping(
                 column.SourceColumn,
                 column.TargetField,
-                column.IsIgnored))
+                column.IsIgnored,
+                column.IsDuplicateKey))
             .ToArray();
         ValidationRuleDefinition[] validationRules;
         CleaningRuleDefinition[] cleaningRules;
@@ -333,11 +360,13 @@ public sealed class MainWindowViewModel(
             {
                 column.TargetField = mapping.TargetField ?? column.SourceColumn;
                 column.IsIgnored = mapping.IsIgnored;
+                column.IsDuplicateKey = mapping.IsDuplicateKey;
             }
             else
             {
                 column.TargetField = column.SourceColumn;
                 column.IsIgnored = false;
+                column.IsDuplicateKey = false;
             }
         }
 
@@ -540,6 +569,52 @@ public sealed class MainWindowViewModel(
         }
     }
 
+    public async Task RunDuplicateDetectionAsync()
+    {
+        if (_dataset is null)
+        {
+            StatusMessage = "Import a file before detecting duplicates.";
+            return;
+        }
+
+        var keyColumns = ColumnProfiles.Where(column => column.IsDuplicateKey && !column.IsIgnored).ToArray();
+        if (keyColumns.Length == 0)
+        {
+            StatusMessage = "Select at least one duplicate key column.";
+            return;
+        }
+
+        IsImportEnabled = false;
+        StatusMessage = "Detecting exact duplicates…";
+        try
+        {
+            var definition = new DuplicateDefinition(keyColumns.Select(column => _dataset.Columns[column.ColumnIndex].Id));
+            var result = await duplicateDetectionService.ResolveAsync(
+                _dataset,
+                definition,
+                SelectedDuplicateAction);
+            _dataset = result.Dataset;
+            DuplicateGroups = result.Detection.Groups.Select(group => new DuplicateGroupViewModel(
+                group.GroupNumber,
+                string.Join(", ", group.RowNumbers),
+                string.Join(" | ", group.KeyValues.Select(value => FormatValue(value) ?? "∅")),
+                group.RowNumbers.Count)).ToArray();
+            DuplicateSummary = $"{result.Detection.Groups.Count:N0} groups · {result.Detection.DuplicateRowCount:N0} matching rows · {result.RemovedRowNumbers.Count:N0} removed";
+            DatasetSummary = $"{_dataset.SourceName} · {_dataset.Rows.Count:N0} rows · {_dataset.Columns.Count:N0} columns";
+            UpdateColumnProfiles();
+            RefreshPreview();
+            StatusMessage = "Duplicate detection complete. Review the Duplicates tab.";
+        }
+        catch (ArgumentException exception)
+        {
+            StatusMessage = $"Duplicate detection could not be completed: {exception.Message}";
+        }
+        finally
+        {
+            IsImportEnabled = true;
+        }
+    }
+
     private async Task ImportCoreAsync(string filePath, string? worksheetName)
     {
         var request = new ImportRequest(
@@ -561,6 +636,7 @@ public sealed class MainWindowViewModel(
         SelectedProfile = null;
         ClearValidationResults();
         ClearCleaningResults();
+        ClearDuplicateResults();
         RefreshPreview();
         DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
         StatusMessage = "Import complete. The source file was not modified.";
@@ -830,6 +906,7 @@ public sealed class MainWindowViewModel(
     {
         ClearValidationResults();
         ClearCleaningResults();
+        ClearDuplicateResults();
         RefreshPreview();
     }
 
@@ -853,6 +930,20 @@ public sealed class MainWindowViewModel(
     {
         CleaningChanges = [];
         CleaningSummary = "Cleaning has not been run for the current configuration.";
+    }
+
+    private void ClearDuplicateResults()
+    {
+        if (_dataset is not null)
+        {
+            foreach (var row in _dataset.Rows)
+            {
+                row.RemoveState(RowState.Duplicate);
+            }
+        }
+
+        DuplicateGroups = [];
+        DuplicateSummary = "Duplicate detection has not been run for the current configuration.";
     }
 
     private async Task ReloadProfilesAsync(Guid? selectedId = null)

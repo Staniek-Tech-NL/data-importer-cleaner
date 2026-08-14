@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddTransient<IDataValidationService, DataValidationService>();
         services.AddTransient<ICleaningEngine, CleaningEngine>();
         services.AddTransient<IDataCleaningService, DataCleaningService>();
+        services.AddTransient<IDuplicateDetectionService, DuplicateDetectionService>();
         return services;
     }
 }

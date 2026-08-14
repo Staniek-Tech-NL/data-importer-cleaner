@@ -22,6 +22,7 @@ internal sealed class ColumnMappingEntity
     public required string SourceColumn { get; set; }
     public string? TargetField { get; set; }
     public bool IsIgnored { get; set; }
+    public bool IsDuplicateKey { get; set; }
 }
 
 internal sealed class ValidationRuleConfigurationEntity

@@ -12,3 +12,6 @@
 10. Re-running validation replaces validation-related row states while preserving unrelated states such as modified or duplicate.
 11. Cleaning rules operate only on current working values and preserve both source and parsed values.
 12. Cleaning order is explicit and every effective change is included in the before/after review.
+13. Duplicate rows require a complete, non-empty configured key; incomplete keys are not grouped automatically.
+14. Duplicate groups are ordered by source row number, making keep-first and keep-last decisions reproducible.
+15. Duplicate review marks rows without erasing validation or modification states; removal affects only the in-memory working dataset.

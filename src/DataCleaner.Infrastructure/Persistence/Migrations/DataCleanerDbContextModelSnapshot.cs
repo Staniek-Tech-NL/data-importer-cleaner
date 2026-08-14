@@ -57,6 +57,9 @@ namespace DataCleaner.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsIgnored")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsDuplicateKey")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("SourceColumn")
                         .IsRequired()
                         .HasMaxLength(300)

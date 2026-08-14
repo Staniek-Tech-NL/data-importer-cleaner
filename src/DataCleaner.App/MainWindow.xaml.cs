@@ -44,4 +44,7 @@ public partial class MainWindow : Window
 
     private async void RunCleaning_Click(object sender, RoutedEventArgs e) =>
         await _viewModel.RunCleaningAsync();
+
+    private async void RunDuplicateDetection_Click(object sender, RoutedEventArgs e) =>
+        await _viewModel.RunDuplicateDetectionAsync();
 }

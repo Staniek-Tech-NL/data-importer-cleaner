@@ -376,6 +376,47 @@
                         </DataGrid>
                     </Grid>
                 </TabItem>
+                <TabItem Header="Duplicates"
+                         IsEnabled="{Binding HasColumnProfiles}">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="220" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,12">
+                            <Button Width="150" Height="36" DockPanel.Dock="Right"
+                                    IsEnabled="{Binding IsImportEnabled}"
+                                    Click="RunDuplicateDetection_Click"
+                                    Content="Find duplicates" />
+                            <ComboBox Width="150" Margin="0,0,12,0" DockPanel.Dock="Right"
+                                      ItemsSource="{Binding AvailableDuplicateActions}"
+                                      SelectedItem="{Binding SelectedDuplicateAction}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold"
+                                       Text="{Binding DuplicateSummary}" />
+                        </DockPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding ColumnProfiles}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="*" Header="Source column" IsReadOnly="True" Binding="{Binding SourceColumn}" />
+                                <DataGridCheckBoxColumn Width="130" Header="Use as key" Binding="{Binding IsDuplicateKey, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="140" Header="Type" IsReadOnly="True" Binding="{Binding TechnicalType}" />
+                                <DataGridTextColumn Width="140" Header="Unique values" IsReadOnly="True" Binding="{Binding UniqueCount}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Grid.Row="2" Margin="0,12,0,6" FontWeight="SemiBold" Text="Duplicate groups" />
+                        <DataGrid Grid.Row="3" ItemsSource="{Binding DuplicateGroups}" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="80" Header="Group" Binding="{Binding GroupNumber}" />
+                                <DataGridTextColumn Width="90" Header="Rows" Binding="{Binding RowCount}" />
+                                <DataGridTextColumn Width="220" Header="Source row numbers" Binding="{Binding RowNumbers}" />
+                                <DataGridTextColumn Width="*" Header="Exact normalized key" Binding="{Binding KeyValues}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
 
