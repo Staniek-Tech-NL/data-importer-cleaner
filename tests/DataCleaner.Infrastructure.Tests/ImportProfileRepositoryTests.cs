@@ -2,6 +2,7 @@ using DataCleaner.Application.Abstractions;
 using DataCleaner.Domain.Profiles;
 using DataCleaner.Infrastructure;
 using DataCleaner.Infrastructure.Persistence;
+using DataCleaner.Domain.Validation;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,7 +36,18 @@ public sealed class ImportProfileRepositoryTests
             await repository.SaveAsync(profile);
             profile.UpdateConfiguration(
                 "pl-PL",
-                [new ColumnMapping("Email", "PrimaryEmail")]);
+                [new ColumnMapping("Email", "PrimaryEmail")],
+                validationRules:
+                [
+                    new ValidationRuleDefinition(
+                        "Email",
+                        ValidationRuleKind.Required,
+                        ValidationSeverity.Error),
+                    new ValidationRuleDefinition(
+                        "Email",
+                        ValidationRuleKind.Email,
+                        ValidationSeverity.Warning)
+                ]);
             await repository.SaveAsync(profile);
 
             var restored = await repository.GetByIdAsync(profile.Id);
@@ -45,6 +57,8 @@ public sealed class ImportProfileRepositoryTests
             Assert.Equal(2, restored.ProfileVersion);
             Assert.Equal("pl-PL", restored.CultureName);
             Assert.Equal("PrimaryEmail", Assert.Single(restored.ColumnMappings).TargetField);
+            Assert.Equal(2, restored.ValidationRules.Count);
+            Assert.Contains(restored.ValidationRules, rule => rule.Kind == ValidationRuleKind.Email);
             Assert.Single(all);
         }
         finally

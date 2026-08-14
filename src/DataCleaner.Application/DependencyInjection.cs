@@ -1,6 +1,7 @@
 using DataCleaner.Application.Abstractions;
 using DataCleaner.Application.Import;
 using DataCleaner.Application.Profiling;
+using DataCleaner.Application.Processing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DataCleaner.Application;
@@ -11,6 +12,8 @@ public static class DependencyInjection
     {
         services.AddTransient<IDataImportService, DataImportService>();
         services.AddTransient<IDataProfilingService, DataProfilingService>();
+        services.AddTransient<IValidationEngine, ValidationEngine>();
+        services.AddTransient<IDataValidationService, DataValidationService>();
         return services;
     }
 }

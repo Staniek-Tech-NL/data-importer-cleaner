@@ -194,6 +194,35 @@
                                 <DataGridCheckBoxColumn Width="70"
                                                         Header="Ignore"
                                                         Binding="{Binding IsIgnored, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="70"
+                                                        Header="Required"
+                                                        Binding="{Binding IsRequired, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="60"
+                                                        Header="Type rule"
+                                                        Binding="{Binding ValidateType, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="60"
+                                                        Header="Email"
+                                                        Binding="{Binding ValidateEmail, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="60"
+                                                        Header="Unique"
+                                                        Binding="{Binding IsUnique, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="85"
+                                                    Header="Min allowed"
+                                                    Binding="{Binding MinimumAllowed, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="85"
+                                                    Header="Max allowed"
+                                                    Binding="{Binding MaximumAllowed, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="180"
+                                                    Header="Allowed values"
+                                                    Binding="{Binding AllowedValues, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTemplateColumn Width="95" Header="Severity">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding AvailableSeverities}"
+                                                      SelectedItem="{Binding Severity, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Width="90" Header="Type" IsReadOnly="True" Binding="{Binding TechnicalType}" />
                                 <DataGridTextColumn Width="90" Header="Semantic" IsReadOnly="True" Binding="{Binding SemanticType}" />
                                 <DataGridTextColumn Width="70" Header="Empty" IsReadOnly="True" Binding="{Binding EmptyCount}" />
@@ -203,6 +232,72 @@
                                 <DataGridTextColumn Width="90" Header="Minimum" IsReadOnly="True" Binding="{Binding Minimum}" />
                                 <DataGridTextColumn Width="90" Header="Maximum" IsReadOnly="True" Binding="{Binding Maximum}" />
                                 <DataGridTextColumn Width="110" Header="Average" IsReadOnly="True" Binding="{Binding Average, StringFormat=N2}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Validation"
+                         IsEnabled="{Binding HasColumnProfiles}">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="150" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,12">
+                            <Button Width="140"
+                                    Height="36"
+                                    DockPanel.Dock="Right"
+                                    IsEnabled="{Binding IsImportEnabled}"
+                                    Click="RunValidation_Click"
+                                    Content="Run validation" />
+                            <TextBlock VerticalAlignment="Center"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="#0F172A"
+                                       Text="{Binding ValidationSummary}" />
+                        </DockPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,0,0,6"
+                                   FontWeight="SemiBold"
+                                   Text="Issues" />
+                        <DataGrid Grid.Row="2"
+                                  ItemsSource="{Binding ValidationIssues}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="70" Header="Row" Binding="{Binding RowNumber}" />
+                                <DataGridTextColumn Width="130" Header="Column" Binding="{Binding ColumnName}" />
+                                <DataGridTextColumn Width="100" Header="Severity" Binding="{Binding Severity}" />
+                                <DataGridTextColumn Width="110" Header="Rule" Binding="{Binding Rule}" />
+                                <DataGridTextColumn Width="180" Header="Source value" Binding="{Binding SourceValue}" />
+                                <DataGridTextColumn Width="*" Header="Message" Binding="{Binding Message}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Grid.Row="3"
+                                   Margin="0,12,0,6"
+                                   FontWeight="SemiBold"
+                                   Text="Rejected rows" />
+                        <DataGrid Grid.Row="4"
+                                  ItemsSource="{Binding RejectedRows}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="80" Header="Row" Binding="{Binding RowNumber}" />
+                                <DataGridTextColumn Width="100" Header="Issues" Binding="{Binding IssueCount}" />
+                                <DataGridTextColumn Width="*" Header="Current values" Binding="{Binding Values}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>

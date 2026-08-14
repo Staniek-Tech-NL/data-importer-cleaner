@@ -27,3 +27,7 @@ All notable changes to this project will be documented in this file.
 - Initial email semantic classification.
 - Interactive source-to-target column mapping and ignored-column preview.
 - Reusable, versioned import profiles persisted in SQLite.
+- Required, email, technical-type, numeric-range, allowed-value and uniqueness validation rules.
+- Configurable info, warning and error severities with before/after-cleaning validation passes.
+- Row and column issue presentation, row-state updates and rejected-row reports.
+- Validation rule configuration persisted with versioned import profiles.

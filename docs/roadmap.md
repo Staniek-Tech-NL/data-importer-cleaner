@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M4 — Validation
-**Completed milestone:** M3 — Profiling and mapping
+**Current milestone:** M5 — Cleaning
+**Completed milestone:** M4 — Validation
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -31,10 +31,10 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.3.0 — Validation
 
-- required, email, type, range, allowed-value and uniqueness rules;
-- severities and validation passes;
-- row/column issue presentation;
-- rejected-row report model.
+- [x] required, email, type, range, allowed-value and uniqueness rules;
+- [x] severities and validation passes;
+- [x] row/column issue presentation;
+- [x] rejected-row report model.
 
 ### v0.4.0 — Cleaning
 

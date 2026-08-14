@@ -10,12 +10,33 @@ public enum ValidationPass
     AfterCleaning
 }
 
+public sealed record RejectedRowReport(
+    long RowNumber,
+    IReadOnlyList<object?> CurrentValues,
+    IReadOnlyList<ValidationIssue> Issues);
+
+public sealed record ValidationResult(
+    ValidationPass Pass,
+    DateTimeOffset CompletedAtUtc,
+    IReadOnlyList<ValidationIssue> Issues,
+    IReadOnlyList<RejectedRowReport> RejectedRows);
+
 public interface IValidationEngine
 {
-    Task<IReadOnlyList<ValidationIssue>> ValidateAsync(
+    Task<ValidationResult> ValidateAsync(
         ImportedDataset dataset,
         IEnumerable<IValidationRule> rules,
         ValidationPass pass,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IDataValidationService
+{
+    Task<ValidationResult> ValidateAsync(
+        ImportedDataset dataset,
+        IEnumerable<ValidationRuleDefinition> definitions,
+        ValidationPass pass,
+        string cultureName,
         CancellationToken cancellationToken = default);
 }
 

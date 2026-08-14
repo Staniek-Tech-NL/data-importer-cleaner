@@ -38,4 +38,7 @@ public partial class MainWindow : Window
 
     private void ApplyProfile_Click(object sender, RoutedEventArgs e) =>
         _viewModel.ApplySelectedProfile();
+
+    private async void RunValidation_Click(object sender, RoutedEventArgs e) =>
+        await _viewModel.RunValidationAsync();
 }

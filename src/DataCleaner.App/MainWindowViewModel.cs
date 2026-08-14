@@ -7,14 +7,17 @@ using System.Data.Common;
 using System.Runtime.CompilerServices;
 using DataCleaner.Application.Abstractions;
 using DataCleaner.Application.Profiling;
+using DataCleaner.Application.Processing;
 using DataCleaner.Domain.Data;
 using DataCleaner.Domain.Profiles;
+using DataCleaner.Domain.Validation;
 
 namespace DataCleaner.App;
 
 public sealed class MainWindowViewModel(
     IDataImportService importService,
     IDataProfilingService profilingService,
+    IDataValidationService validationService,
     IImportProfileRepository profileRepository) : INotifyPropertyChanged
 {
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
@@ -29,6 +32,9 @@ public sealed class MainWindowViewModel(
     private IReadOnlyList<ImportProfile> _savedProfiles = [];
     private ImportProfile? _selectedProfile;
     private string _profileName = string.Empty;
+    private IReadOnlyList<ValidationIssueViewModel> _validationIssues = [];
+    private IReadOnlyList<RejectedRowViewModel> _rejectedRows = [];
+    private string _validationSummary = "Validation has not been run.";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -77,6 +83,24 @@ public sealed class MainWindowViewModel(
     public ObservableCollection<ColumnProfileViewModel> ColumnProfiles { get; } = [];
 
     public bool HasColumnProfiles => ColumnProfiles.Count > 0;
+
+    public IReadOnlyList<ValidationIssueViewModel> ValidationIssues
+    {
+        get => _validationIssues;
+        private set => SetField(ref _validationIssues, value);
+    }
+
+    public IReadOnlyList<RejectedRowViewModel> RejectedRows
+    {
+        get => _rejectedRows;
+        private set => SetField(ref _rejectedRows, value);
+    }
+
+    public string ValidationSummary
+    {
+        get => _validationSummary;
+        private set => SetField(ref _validationSummary, value);
+    }
 
     public IReadOnlyList<ImportProfile> SavedProfiles
     {
@@ -225,6 +249,17 @@ public sealed class MainWindowViewModel(
                 column.TargetField,
                 column.IsIgnored))
             .ToArray();
+        ValidationRuleDefinition[] validationRules;
+        try
+        {
+            validationRules = BuildValidationDefinitions();
+        }
+        catch (ArgumentException exception)
+        {
+            StatusMessage = exception.Message;
+            return;
+        }
+
         var profile = SelectedProfile is not null
             && string.Equals(SelectedProfile.Name, ProfileName.Trim(), StringComparison.OrdinalIgnoreCase)
                 ? SelectedProfile
@@ -232,12 +267,19 @@ public sealed class MainWindowViewModel(
                     candidate.Name,
                     ProfileName.Trim(),
                     StringComparison.OrdinalIgnoreCase))
-                    ?? new ImportProfile(ProfileName, CultureInfo.CurrentCulture.Name, mappings);
+                    ?? new ImportProfile(
+                        ProfileName,
+                        CultureInfo.CurrentCulture.Name,
+                        mappings,
+                        validationRules);
 
         if (profile.ColumnMappings.Count > 0)
         {
             profile.Rename(ProfileName);
-            profile.UpdateConfiguration(CultureInfo.CurrentCulture.Name, mappings);
+            profile.UpdateConfiguration(
+                CultureInfo.CurrentCulture.Name,
+                mappings,
+                validationRules: validationRules);
         }
 
         try
@@ -265,6 +307,7 @@ public sealed class MainWindowViewModel(
             StringComparer.OrdinalIgnoreCase);
         foreach (var column in ColumnProfiles)
         {
+            column.ResetValidationConfiguration();
             if (mappings.TryGetValue(column.SourceColumn, out var mapping))
             {
                 column.TargetField = mapping.TargetField ?? column.SourceColumn;
@@ -277,8 +320,104 @@ public sealed class MainWindowViewModel(
             }
         }
 
+        foreach (var definition in SelectedProfile.ValidationRules)
+        {
+            var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
+                candidate.SourceColumn,
+                definition.SourceColumn,
+                StringComparison.OrdinalIgnoreCase));
+            if (column is null)
+            {
+                continue;
+            }
+
+            column.Severity = definition.Severity;
+            switch (definition.Kind)
+            {
+                case ValidationRuleKind.Required:
+                    column.IsRequired = true;
+                    break;
+                case ValidationRuleKind.Type:
+                    column.ValidateType = true;
+                    break;
+                case ValidationRuleKind.Email:
+                    column.ValidateEmail = true;
+                    break;
+                case ValidationRuleKind.Range:
+                    column.MinimumAllowed = definition.Minimum;
+                    column.MaximumAllowed = definition.Maximum;
+                    break;
+                case ValidationRuleKind.AllowedValue:
+                    column.AllowedValues = string.Join(", ", definition.AllowedValues);
+                    break;
+                case ValidationRuleKind.Unique:
+                    column.IsUnique = true;
+                    break;
+            }
+        }
+
         RefreshPreview();
         StatusMessage = $"Profile '{SelectedProfile.Name}' version {SelectedProfile.ProfileVersion} applied.";
+    }
+
+    public async Task RunValidationAsync()
+    {
+        if (_dataset is null)
+        {
+            StatusMessage = "Import a file before running validation.";
+            return;
+        }
+
+        ValidationRuleDefinition[] definitions;
+        try
+        {
+            definitions = BuildValidationDefinitions();
+        }
+        catch (ArgumentException exception)
+        {
+            StatusMessage = exception.Message;
+            return;
+        }
+
+        IsImportEnabled = false;
+        StatusMessage = "Running validation…";
+        try
+        {
+            var result = await validationService.ValidateAsync(
+                _dataset,
+                definitions,
+                ValidationPass.BeforeCleaning,
+                CultureInfo.CurrentCulture.Name);
+            var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
+            ValidationIssues = result.Issues.Select(issue => new ValidationIssueViewModel(
+                issue.RowNumber,
+                columnNames.GetValueOrDefault(issue.ColumnId, "Unknown"),
+                issue.SourceValue,
+                issue.RuleCode,
+                issue.Severity.ToString(),
+                issue.Message)).ToArray();
+            RejectedRows = result.RejectedRows.Select(row => new RejectedRowViewModel(
+                row.RowNumber,
+                row.Issues.Count,
+                string.Join(" | ", row.CurrentValues.Select(value => value?.ToString() ?? "∅"))))
+                .ToArray();
+            var errors = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Error);
+            var warnings = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
+            var infos = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Info);
+            ValidationSummary = $"{errors:N0} errors · {warnings:N0} warnings · {infos:N0} info · {result.RejectedRows.Count:N0} rejected rows";
+            StatusMessage = result.Issues.Count == 0
+                ? "Validation complete. No issues found."
+                : "Validation complete. Review the Validation tab.";
+            RefreshPreview();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            StatusMessage = $"Validation could not be completed: {exception.Message}";
+        }
+        finally
+        {
+            IsImportEnabled = true;
+        }
     }
 
     private async Task ImportCoreAsync(string filePath, string? worksheetName)
@@ -294,12 +433,13 @@ public sealed class MainWindowViewModel(
         ColumnProfiles.Clear();
         for (var index = 0; index < profiles.Count; index++)
         {
-            ColumnProfiles.Add(new ColumnProfileViewModel(index, profiles[index], RefreshPreview));
+            ColumnProfiles.Add(new ColumnProfileViewModel(index, profiles[index], OnColumnConfigurationChanged));
         }
 
         OnPropertyChanged(nameof(HasColumnProfiles));
         ProfileName = Path.GetFileNameWithoutExtension(request.FilePath);
         SelectedProfile = null;
+        ClearValidationResults();
         RefreshPreview();
         DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
         StatusMessage = "Import complete. The source file was not modified.";
@@ -323,6 +463,7 @@ public sealed class MainWindowViewModel(
         };
         var visibleMappings = mappings.Where(mapping => !mapping.IsIgnored).ToArray();
         var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        table.Columns.Add("Row status", typeof(string));
         foreach (var mapping in visibleMappings)
         {
             var baseName = string.IsNullOrWhiteSpace(mapping.TargetField)
@@ -339,13 +480,100 @@ public sealed class MainWindowViewModel(
             var row = table.NewRow();
             for (var index = 0; index < visibleMappings.Length; index++)
             {
-                row[index] = importedRow.Cells[visibleMappings[index].ColumnIndex].CurrentValue ?? DBNull.Value;
+                row[index + 1] = importedRow.Cells[visibleMappings[index].ColumnIndex].CurrentValue ?? DBNull.Value;
             }
+
+            row[0] = importedRow.State == RowState.None ? "Not validated" : importedRow.State.ToString();
 
             table.Rows.Add(row);
         }
 
         return table.DefaultView;
+    }
+
+    private ValidationRuleDefinition[] BuildValidationDefinitions()
+    {
+        var definitions = new List<ValidationRuleDefinition>();
+        foreach (var column in ColumnProfiles.Where(column => !column.IsIgnored))
+        {
+            if (column.ValidateType)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.Type,
+                    column.Severity));
+            }
+
+            if (column.IsRequired)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.Required,
+                    column.Severity));
+            }
+
+            if (column.ValidateEmail)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.Email,
+                    column.Severity));
+            }
+
+            if (column.MinimumAllowed.HasValue || column.MaximumAllowed.HasValue)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.Range,
+                    column.Severity,
+                    column.MinimumAllowed,
+                    column.MaximumAllowed));
+            }
+
+            var allowedValues = column.AllowedValues.Split(
+                [',', ';', '|', '\r', '\n'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (allowedValues.Length > 0)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.AllowedValue,
+                    column.Severity,
+                    allowedValues: allowedValues));
+            }
+
+            if (column.IsUnique)
+            {
+                definitions.Add(new ValidationRuleDefinition(
+                    column.SourceColumn,
+                    ValidationRuleKind.Unique,
+                    column.Severity));
+            }
+        }
+
+        return definitions.ToArray();
+    }
+
+    private void OnColumnConfigurationChanged()
+    {
+        ClearValidationResults();
+        RefreshPreview();
+    }
+
+    private void ClearValidationResults()
+    {
+        if (_dataset is not null)
+        {
+            foreach (var row in _dataset.Rows)
+            {
+                row.RemoveState(
+                    RowState.Valid | RowState.Info | RowState.Warning | RowState.Invalid | RowState.Rejected);
+            }
+        }
+
+        ValidationIssues = [];
+        RejectedRows = [];
+        ValidationSummary = "Validation has not been run for the current configuration.";
     }
 
     private async Task ReloadProfilesAsync(Guid? selectedId = null)

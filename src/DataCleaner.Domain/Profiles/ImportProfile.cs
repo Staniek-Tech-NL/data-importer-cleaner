@@ -1,13 +1,17 @@
+using DataCleaner.Domain.Validation;
+
 namespace DataCleaner.Domain.Profiles;
 
 public sealed class ImportProfile
 {
     private IReadOnlyList<ColumnMapping> _columnMappings;
+    private IReadOnlyList<ValidationRuleDefinition> _validationRules;
 
     public ImportProfile(
         string name,
         string? cultureName = null,
-        IEnumerable<ColumnMapping>? columnMappings = null)
+        IEnumerable<ColumnMapping>? columnMappings = null,
+        IEnumerable<ValidationRuleDefinition>? validationRules = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -15,6 +19,7 @@ public sealed class ImportProfile
         Name = name.Trim();
         CultureName = NormalizeOptional(cultureName);
         _columnMappings = ValidateMappings(columnMappings ?? []);
+        _validationRules = ValidateRules(validationRules ?? []);
         ProfileVersion = 1;
         CreatedAtUtc = DateTimeOffset.UtcNow;
         UpdatedAtUtc = CreatedAtUtc;
@@ -29,7 +34,8 @@ public sealed class ImportProfile
         string? cultureName,
         string? dateFormat,
         string? numberFormat,
-        IEnumerable<ColumnMapping> columnMappings)
+        IEnumerable<ColumnMapping> columnMappings,
+        IEnumerable<ValidationRuleDefinition> validationRules)
     {
         Id = id;
         Name = name;
@@ -40,6 +46,7 @@ public sealed class ImportProfile
         DateFormat = dateFormat;
         NumberFormat = numberFormat;
         _columnMappings = ValidateMappings(columnMappings);
+        _validationRules = ValidateRules(validationRules);
     }
 
     public Guid Id { get; }
@@ -60,6 +67,8 @@ public sealed class ImportProfile
 
     public IReadOnlyList<ColumnMapping> ColumnMappings => _columnMappings;
 
+    public IReadOnlyList<ValidationRuleDefinition> ValidationRules => _validationRules;
+
     public void Rename(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -77,17 +86,20 @@ public sealed class ImportProfile
         string? cultureName,
         IEnumerable<ColumnMapping> columnMappings,
         string? dateFormat = null,
-        string? numberFormat = null)
+        string? numberFormat = null,
+        IEnumerable<ValidationRuleDefinition>? validationRules = null)
     {
         var normalizedCulture = NormalizeOptional(cultureName);
         var normalizedDateFormat = NormalizeOptional(dateFormat);
         var normalizedNumberFormat = NormalizeOptional(numberFormat);
         var mappings = ValidateMappings(columnMappings);
+        var rules = validationRules is null ? _validationRules : ValidateRules(validationRules);
 
         if (string.Equals(CultureName, normalizedCulture, StringComparison.Ordinal)
             && string.Equals(DateFormat, normalizedDateFormat, StringComparison.Ordinal)
             && string.Equals(NumberFormat, normalizedNumberFormat, StringComparison.Ordinal)
-            && _columnMappings.SequenceEqual(mappings))
+            && _columnMappings.SequenceEqual(mappings)
+            && ValidationRulesEqual(_validationRules, rules))
         {
             return;
         }
@@ -96,6 +108,7 @@ public sealed class ImportProfile
         DateFormat = normalizedDateFormat;
         NumberFormat = normalizedNumberFormat;
         _columnMappings = mappings;
+        _validationRules = rules;
         MarkUpdated();
     }
 
@@ -108,7 +121,8 @@ public sealed class ImportProfile
         string? cultureName,
         string? dateFormat,
         string? numberFormat,
-        IEnumerable<ColumnMapping> columnMappings)
+        IEnumerable<ColumnMapping> columnMappings,
+        IEnumerable<ValidationRuleDefinition>? validationRules = null)
     {
         if (id == Guid.Empty)
         {
@@ -126,7 +140,8 @@ public sealed class ImportProfile
             NormalizeOptional(cultureName),
             NormalizeOptional(dateFormat),
             NormalizeOptional(numberFormat),
-            columnMappings);
+            columnMappings,
+            validationRules ?? []);
     }
 
     private static ColumnMapping[] ValidateMappings(IEnumerable<ColumnMapping> mappings)
@@ -140,6 +155,42 @@ public sealed class ImportProfile
         }
 
         return result;
+    }
+
+    private static ValidationRuleDefinition[] ValidateRules(IEnumerable<ValidationRuleDefinition> rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        var result = rules.ToArray();
+        var uniqueKeys = result
+            .Select(rule => $"{rule.SourceColumn.ToUpperInvariant()}|{rule.Kind}")
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        if (uniqueKeys != result.Length)
+        {
+            throw new ArgumentException(
+                "A validation rule kind can be configured only once per source column.",
+                nameof(rules));
+        }
+
+        return result;
+    }
+
+    private static bool ValidationRulesEqual(
+        IReadOnlyList<ValidationRuleDefinition> first,
+        IReadOnlyList<ValidationRuleDefinition> second)
+    {
+        if (first.Count != second.Count)
+        {
+            return false;
+        }
+
+        return first.All(rule => second.Any(candidate =>
+            string.Equals(rule.SourceColumn, candidate.SourceColumn, StringComparison.Ordinal)
+            && rule.Kind == candidate.Kind
+            && rule.Severity == candidate.Severity
+            && rule.Minimum == candidate.Minimum
+            && rule.Maximum == candidate.Maximum
+            && rule.AllowedValues.SequenceEqual(candidate.AllowedValues, StringComparer.Ordinal)));
     }
 
     private static string? NormalizeOptional(string? value) =>

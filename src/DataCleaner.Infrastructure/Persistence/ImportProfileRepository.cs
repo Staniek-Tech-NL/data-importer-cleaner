@@ -1,5 +1,7 @@
+using System.Text.Json;
 using DataCleaner.Application.Abstractions;
 using DataCleaner.Domain.Profiles;
+using DataCleaner.Domain.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataCleaner.Infrastructure.Persistence;
@@ -12,6 +14,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
         var entities = await dbContext.ImportProfiles
             .AsNoTracking()
             .Include(profile => profile.ColumnMappings)
+            .Include(profile => profile.ValidationRules)
             .OrderBy(profile => profile.Name)
             .ToArrayAsync(cancellationToken);
         return entities.Select(ToDomain).ToArray();
@@ -24,6 +27,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
         var entity = await dbContext.ImportProfiles
             .AsNoTracking()
             .Include(profile => profile.ColumnMappings)
+            .Include(profile => profile.ValidationRules)
             .SingleOrDefaultAsync(profile => profile.Id == id, cancellationToken);
         return entity is null ? null : ToDomain(entity);
     }
@@ -33,6 +37,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
         ArgumentNullException.ThrowIfNull(profile);
         var entity = await dbContext.ImportProfiles
             .Include(candidate => candidate.ColumnMappings)
+            .Include(candidate => candidate.ValidationRules)
             .SingleOrDefaultAsync(candidate => candidate.Id == profile.Id, cancellationToken);
 
         if (entity is null)
@@ -87,7 +92,50 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             mappingEntity.IsIgnored = mapping.IsIgnored;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var existingRules = entity.ValidationRules.ToArray();
+        for (var index = profile.ValidationRules.Count; index < existingRules.Length; index++)
+        {
+            dbContext.ValidationRuleConfigurations.Remove(existingRules[index]);
+        }
+
+        for (var index = 0; index < profile.ValidationRules.Count; index++)
+        {
+            var definition = profile.ValidationRules[index];
+            var ruleEntity = index < existingRules.Length
+                ? existingRules[index]
+                : new ValidationRuleConfigurationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ImportProfileId = profile.Id,
+                    RuleCode = string.Empty,
+                    ConfigurationJson = string.Empty,
+                    Severity = string.Empty
+                };
+            if (index >= existingRules.Length)
+            {
+                entity.ValidationRules.Add(ruleEntity);
+                dbContext.ValidationRuleConfigurations.Add(ruleEntity);
+            }
+
+            ruleEntity.RuleCode = definition.Kind.ToString();
+            ruleEntity.Severity = definition.Severity.ToString();
+            ruleEntity.ConfigurationJson = JsonSerializer.Serialize(new ValidationConfiguration(
+                definition.SourceColumn,
+                definition.Minimum,
+                definition.Maximum,
+                definition.AllowedValues.ToArray()));
+        }
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new InvalidOperationException(
+                "The profile changed while it was being saved. Reload it and try again.",
+                exception);
+        }
     }
 
     private static ImportProfile ToDomain(ImportProfileEntity entity) => ImportProfile.Restore(
@@ -104,5 +152,33 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             .Select(mapping => new ColumnMapping(
                 mapping.SourceColumn,
                 mapping.TargetField,
-                mapping.IsIgnored)));
+                mapping.IsIgnored)),
+        entity.ValidationRules
+            .OrderBy(rule => rule.Id)
+            .Select(ToDomain));
+
+    private static ValidationRuleDefinition ToDomain(ValidationRuleConfigurationEntity entity)
+    {
+        var configuration = JsonSerializer.Deserialize<ValidationConfiguration>(entity.ConfigurationJson)
+            ?? throw new InvalidDataException("A persisted validation rule has invalid configuration.");
+        if (!Enum.TryParse<ValidationRuleKind>(entity.RuleCode, out var kind)
+            || !Enum.TryParse<ValidationSeverity>(entity.Severity, out var severity))
+        {
+            throw new InvalidDataException("A persisted validation rule has an unknown kind or severity.");
+        }
+
+        return new ValidationRuleDefinition(
+            configuration.SourceColumn,
+            kind,
+            severity,
+            configuration.Minimum,
+            configuration.Maximum,
+            configuration.AllowedValues);
+    }
+
+    private sealed record ValidationConfiguration(
+        string SourceColumn,
+        decimal? Minimum,
+        decimal? Maximum,
+        string[] AllowedValues);
 }
