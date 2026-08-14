@@ -3,7 +3,7 @@
 Data Importer & Cleaner is a Windows desktop application for turning inconsistent CSV and Excel files into clean, validated and reusable business data through a safe, reviewable workflow.
 
 > [!IMPORTANT]
-> The project is under active development. Milestones M1–M6 are complete; export and processing history are next. There is no public end-user release yet.
+> The project is under active development. Milestones M1–M7 are complete; release-candidate hardening and portfolio evidence are next. There is no public end-user release yet.
 
 ## Why this project exists
 
@@ -34,7 +34,7 @@ Validation and cleaning remain separate. The validation engine can run before an
 | Validation engine | Complete | M4 |
 | Cleaning engine and before/after review | Complete | M5 |
 | Deterministic duplicate detection | Complete | M6 |
-| CSV/XLSX/SQLite export and history | Planned | M7 |
+| CSV/XLSX/SQLite export and history | Complete | M7 |
 | Portfolio release | Planned | M8 |
 
 See the [roadmap](docs/roadmap.md) and [project plan](docs/project-plan.md) for scope and delivery details.

@@ -2,6 +2,7 @@ using DataCleaner.Application.Abstractions;
 using DataCleaner.Application.Import;
 using DataCleaner.Application.Profiling;
 using DataCleaner.Application.Processing;
+using DataCleaner.Application.Export;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DataCleaner.Application;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddTransient<ICleaningEngine, CleaningEngine>();
         services.AddTransient<IDataCleaningService, DataCleaningService>();
         services.AddTransient<IDuplicateDetectionService, DuplicateDetectionService>();
+        services.AddTransient<IDataExportService, DataExportService>();
         return services;
     }
 }

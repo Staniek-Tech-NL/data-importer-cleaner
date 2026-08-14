@@ -15,3 +15,7 @@
 13. Duplicate rows require a complete, non-empty configured key; incomplete keys are not grouped automatically.
 14. Duplicate groups are ordered by source row number, making keep-first and keep-last decisions reproducible.
 15. Duplicate review marks rows without erasing validation or modification states; removal affects only the in-memory working dataset.
+16. Export writes mapped, non-ignored columns and current working values to a newly created file.
+17. Existing files are never overwritten by export, regardless of format.
+18. Valid, invalid and modified export filters derive exclusively from explicit row-state flags.
+19. Local history stores file names and processing counts, not imported row contents.

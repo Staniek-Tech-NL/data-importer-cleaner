@@ -22,7 +22,10 @@ public sealed class MainWindowViewModel(
     IDataValidationService validationService,
     IDataCleaningService cleaningService,
     IDuplicateDetectionService duplicateDetectionService,
-    IImportProfileRepository profileRepository) : INotifyPropertyChanged
+    IDataExportService exportService,
+    IErrorReportWriter errorReportWriter,
+    IImportProfileRepository profileRepository,
+    IImportHistoryRepository historyRepository) : INotifyPropertyChanged
 {
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
     private DataView? _preview;
@@ -44,6 +47,13 @@ public sealed class MainWindowViewModel(
     private IReadOnlyList<DuplicateGroupViewModel> _duplicateGroups = [];
     private string _duplicateSummary = "Duplicate detection has not been run.";
     private DuplicateResolutionAction _selectedDuplicateAction = DuplicateResolutionAction.MarkForReview;
+    private ExportRowFilter _selectedExportFilter;
+    private IReadOnlyList<ImportHistoryEntry> _historyEntries = [];
+    private string _processingSummary = "No active import.";
+    private Guid _currentImportId;
+    private DateTimeOffset _importStartedAtUtc;
+    private int _sourceRowCount;
+    private int _duplicatesRemoved;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -144,6 +154,27 @@ public sealed class MainWindowViewModel(
         private set => SetField(ref _duplicateSummary, value);
     }
 
+    public IReadOnlyList<ExportRowFilter> AvailableExportFilters { get; } =
+        Enum.GetValues<ExportRowFilter>();
+
+    public ExportRowFilter SelectedExportFilter
+    {
+        get => _selectedExportFilter;
+        set => SetField(ref _selectedExportFilter, value);
+    }
+
+    public IReadOnlyList<ImportHistoryEntry> HistoryEntries
+    {
+        get => _historyEntries;
+        private set => SetField(ref _historyEntries, value);
+    }
+
+    public string ProcessingSummary
+    {
+        get => _processingSummary;
+        private set => SetField(ref _processingSummary, value);
+    }
+
     public IReadOnlyList<ImportProfile> SavedProfiles
     {
         get => _savedProfiles;
@@ -193,6 +224,7 @@ public sealed class MainWindowViewModel(
         try
         {
             await ReloadProfilesAsync();
+            await ReloadHistoryAsync();
         }
         catch (DbException exception)
         {
@@ -594,6 +626,7 @@ public sealed class MainWindowViewModel(
                 definition,
                 SelectedDuplicateAction);
             _dataset = result.Dataset;
+            _duplicatesRemoved += result.RemovedRowNumbers.Count;
             DuplicateGroups = result.Detection.Groups.Select(group => new DuplicateGroupViewModel(
                 group.GroupNumber,
                 string.Join(", ", group.RowNumbers),
@@ -602,6 +635,7 @@ public sealed class MainWindowViewModel(
             DuplicateSummary = $"{result.Detection.Groups.Count:N0} groups · {result.Detection.DuplicateRowCount:N0} matching rows · {result.RemovedRowNumbers.Count:N0} removed";
             DatasetSummary = $"{_dataset.SourceName} · {_dataset.Rows.Count:N0} rows · {_dataset.Columns.Count:N0} columns";
             UpdateColumnProfiles();
+            UpdateProcessingSummary();
             RefreshPreview();
             StatusMessage = "Duplicate detection complete. Review the Duplicates tab.";
         }
@@ -615,6 +649,73 @@ public sealed class MainWindowViewModel(
         }
     }
 
+    public async Task ExportAsync(string filePath)
+    {
+        if (_dataset is null)
+        {
+            StatusMessage = "Import a file before exporting data.";
+            return;
+        }
+
+        IsImportEnabled = false;
+        StatusMessage = "Exporting a new output file…";
+        try
+        {
+            var exportDataset = CreateExportDataset();
+            var result = await exportService.ExportAsync(new ExportRequest(
+                filePath,
+                exportDataset,
+                SelectedExportFilter));
+            try
+            {
+                await SaveHistoryAsync("Exported", Path.GetFileName(result.FilePath));
+                await ReloadHistoryAsync();
+                StatusMessage = $"Export complete: {result.ExportedRows:N0} rows written to {Path.GetFileName(result.FilePath)}.";
+            }
+            catch (DbException exception)
+            {
+                StatusMessage = $"Export complete, but local history could not be updated: {exception.Message}";
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            StatusMessage = $"Export could not be completed: {exception.Message}";
+        }
+        finally
+        {
+            IsImportEnabled = true;
+        }
+    }
+
+    public async Task ExportErrorReportAsync(string filePath)
+    {
+        var errors = ValidationIssues
+            .Where(issue => string.Equals(issue.Severity, ValidationSeverity.Error.ToString(), StringComparison.Ordinal))
+            .Select(issue => new ErrorReportRow(
+                issue.RowNumber,
+                issue.ColumnName,
+                issue.Rule,
+                issue.Severity,
+                issue.Message,
+                issue.SourceValue))
+            .ToArray();
+        if (errors.Length == 0)
+        {
+            StatusMessage = "There are no rejected-row errors to export.";
+            return;
+        }
+
+        try
+        {
+            await errorReportWriter.WriteAsync(filePath, errors);
+            StatusMessage = $"Error report complete: {errors.Length:N0} issues written.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            StatusMessage = $"Error report could not be completed: {exception.Message}";
+        }
+    }
+
     private async Task ImportCoreAsync(string filePath, string? worksheetName)
     {
         var request = new ImportRequest(
@@ -624,6 +725,10 @@ public sealed class MainWindowViewModel(
             SelectedEncoding);
         var dataset = await importService.ImportAsync(request);
         _dataset = dataset;
+        _currentImportId = Guid.NewGuid();
+        _importStartedAtUtc = DateTimeOffset.UtcNow;
+        _sourceRowCount = dataset.Rows.Count;
+        _duplicatesRemoved = 0;
         var profiles = profilingService.Profile(dataset, CultureInfo.CurrentCulture.Name);
         ColumnProfiles.Clear();
         for (var index = 0; index < profiles.Count; index++)
@@ -639,6 +744,9 @@ public sealed class MainWindowViewModel(
         ClearDuplicateResults();
         RefreshPreview();
         DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
+        UpdateProcessingSummary();
+        await SaveHistoryAsync("Imported");
+        await ReloadHistoryAsync();
         StatusMessage = "Import complete. The source file was not modified.";
     }
 
@@ -878,6 +986,7 @@ public sealed class MainWindowViewModel(
         var warnings = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
         var infos = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Info);
         ValidationSummary = $"{errors:N0} errors · {warnings:N0} warnings · {infos:N0} info · {result.RejectedRows.Count:N0} rejected rows";
+        UpdateProcessingSummary();
     }
 
     private void UpdateColumnProfiles()
@@ -952,6 +1061,67 @@ public sealed class MainWindowViewModel(
         SelectedProfile = selectedId.HasValue
             ? SavedProfiles.FirstOrDefault(profile => profile.Id == selectedId.Value)
             : null;
+    }
+
+    private ImportedDataset CreateExportDataset()
+    {
+        var selected = ColumnProfiles.Where(column => !column.IsIgnored).ToArray();
+        var columns = selected.Select((mapping, index) => new ImportedColumn(
+            Guid.NewGuid(),
+            index,
+            string.IsNullOrWhiteSpace(mapping.TargetField) ? mapping.SourceColumn : mapping.TargetField.Trim(),
+            _dataset!.Columns[mapping.ColumnIndex].DataType,
+            _dataset.Columns[mapping.ColumnIndex].SemanticType)).ToArray();
+        var rows = _dataset!.Rows.Select(sourceRow =>
+        {
+            var row = new ImportedRow(sourceRow.SourceRowNumber, selected.Select((mapping, index) =>
+            {
+                var sourceCell = sourceRow.Cells[mapping.ColumnIndex];
+                return new DataCell(columns[index].Id, sourceCell.SourceValue, sourceCell.CurrentValue);
+            }));
+            row.AddState(sourceRow.State);
+            return row;
+        }).ToArray();
+        return new ImportedDataset(_dataset.SourceName, columns, rows);
+    }
+
+    private async Task SaveHistoryAsync(string status, string? outputFileName = null)
+    {
+        if (_dataset is null || _currentImportId == Guid.Empty)
+        {
+            return;
+        }
+
+        var invalid = _dataset.Rows.Count(row => row.State.HasFlag(RowState.Invalid) || row.State.HasFlag(RowState.Rejected));
+        var modified = _dataset.Rows.Count(row => row.State.HasFlag(RowState.Modified));
+        await historyRepository.SaveAsync(new ImportHistoryEntry(
+            _currentImportId,
+            _dataset.SourceName,
+            _importStartedAtUtc,
+            status == "Exported" ? DateTimeOffset.UtcNow : null,
+            _sourceRowCount,
+            invalid,
+            status,
+            _dataset.Rows.Count - invalid,
+            modified,
+            _duplicatesRemoved,
+            outputFileName));
+    }
+
+    private async Task ReloadHistoryAsync() =>
+        HistoryEntries = await historyRepository.GetRecentAsync(25);
+
+    private void UpdateProcessingSummary()
+    {
+        if (_dataset is null)
+        {
+            ProcessingSummary = "No active import.";
+            return;
+        }
+
+        var invalid = _dataset.Rows.Count(row => row.State.HasFlag(RowState.Invalid) || row.State.HasFlag(RowState.Rejected));
+        var modified = _dataset.Rows.Count(row => row.State.HasFlag(RowState.Modified));
+        ProcessingSummary = $"Source {_sourceRowCount:N0} · working {_dataset.Rows.Count:N0} · valid {_dataset.Rows.Count - invalid:N0} · invalid {invalid:N0} · modified {modified:N0} · duplicates removed {_duplicatesRemoved:N0}";
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

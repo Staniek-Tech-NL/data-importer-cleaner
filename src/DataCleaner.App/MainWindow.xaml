@@ -417,6 +417,41 @@
                         </DataGrid>
                     </Grid>
                 </TabItem>
+                <TabItem Header="Export &amp; history"
+                         IsEnabled="{Binding HasColumnProfiles}">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding ProcessingSummary}" />
+                        <DockPanel Grid.Row="1" Margin="0,14,0,14">
+                            <Button Width="160" Height="36" Margin="12,0,0,0" DockPanel.Dock="Right"
+                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportData_Click" Content="Export new file" />
+                            <Button Width="160" Height="36" Margin="12,0,0,0" DockPanel.Dock="Right"
+                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportErrors_Click" Content="Export error report" />
+                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Rows" />
+                            <ComboBox Width="150" ItemsSource="{Binding AvailableExportFilters}"
+                                      SelectedItem="{Binding SelectedExportFilter}" />
+                        </DockPanel>
+                        <TextBlock Grid.Row="2" Margin="0,4,0,6" FontWeight="SemiBold" Text="Recent local processing history" />
+                        <DataGrid Grid.Row="3" ItemsSource="{Binding HistoryEntries}" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="150" Header="Started" Binding="{Binding StartedAtUtc, StringFormat={}{0:g}}" />
+                                <DataGridTextColumn Width="*" Header="Source" Binding="{Binding SourceFileName}" />
+                                <DataGridTextColumn Width="90" Header="Status" Binding="{Binding Status}" />
+                                <DataGridTextColumn Width="85" Header="Rows" Binding="{Binding ProcessedRows}" />
+                                <DataGridTextColumn Width="85" Header="Invalid" Binding="{Binding InvalidRows}" />
+                                <DataGridTextColumn Width="85" Header="Modified" Binding="{Binding ModifiedRows}" />
+                                <DataGridTextColumn Width="100" Header="Duplicates" Binding="{Binding DuplicatesRemoved}" />
+                                <DataGridTextColumn Width="180" Header="Output" Binding="{Binding OutputFileName}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
 

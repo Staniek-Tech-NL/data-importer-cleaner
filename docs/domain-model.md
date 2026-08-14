@@ -23,3 +23,7 @@ Duplicate detection compares exact invariant representations of current working 
 Resolution is separate from detection. Mark-for-review keeps all rows and adds the duplicate state alongside existing states. Keep-first and keep-last retain a deterministic representative, while remove-all excludes every grouped row from a new in-memory dataset. The detection result retains group membership and key values for review even after rows are removed.
 
 Duplicate-key selection is part of persisted source-column mapping configuration, so a versioned import profile can reproduce the same composite key on a later import.
+
+Export builds a projection of mapped, non-ignored columns and current values before applying an all, valid, invalid or modified row filter. Format-specific writers create CSV, XLSX or SQLite output with invariant scalar formatting and refuse existing destinations. Validation errors can be written to a separate CSV report without exposing unrelated rows.
+
+An import history entry stores source and output file names, timestamps, status and aggregate counts for processed, valid, invalid, modified and removed-duplicate rows. Full imported datasets and cell contents remain outside application persistence.

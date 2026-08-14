@@ -18,7 +18,11 @@ public sealed record ImportHistoryEntry(
     DateTimeOffset? CompletedAtUtc,
     int ProcessedRows,
     int InvalidRows,
-    string Status);
+    string Status,
+    int ValidRows = 0,
+    int ModifiedRows = 0,
+    int DuplicatesRemoved = 0,
+    string? OutputFileName = null);
 
 public interface IImportHistoryRepository
 {

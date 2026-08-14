@@ -33,11 +33,51 @@ public interface IWorksheetFileReader : IDataFileReader
         CancellationToken cancellationToken = default);
 }
 
-public sealed record ExportRequest(string FilePath, ImportedDataset Dataset);
+public enum ExportRowFilter
+{
+    All = 0,
+    Valid,
+    Invalid,
+    Modified
+}
+
+public sealed record ExportRequest(
+    string FilePath,
+    ImportedDataset Dataset,
+    ExportRowFilter Filter = ExportRowFilter.All);
+
+public sealed record ExportResult(
+    string FilePath,
+    int ExportedRows,
+    ExportRowFilter Filter,
+    DateTimeOffset CompletedAtUtc);
 
 public interface IDataFileWriter
 {
     bool CanWrite(string fileExtension);
 
     Task WriteAsync(ExportRequest request, CancellationToken cancellationToken = default);
+}
+
+public interface IDataExportService
+{
+    Task<ExportResult> ExportAsync(
+        ExportRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record ErrorReportRow(
+    long SourceRowNumber,
+    string ColumnName,
+    string RuleCode,
+    string Severity,
+    string Message,
+    string? SourceValue);
+
+public interface IErrorReportWriter
+{
+    Task WriteAsync(
+        string filePath,
+        IEnumerable<ErrorReportRow> rows,
+        CancellationToken cancellationToken = default);
 }

@@ -19,6 +19,8 @@ Import → Profile → Map → Pre-validation → Clean → Post-validation
 
 Pre-validation and post-validation use the same validation engine. Cleaning never becomes an implicit part of validation.
 
+Export selection and row filtering live in the application layer. Infrastructure writers own CSV, Open XML workbook and SQLite serialization, while all formats share the same create-new-file safety boundary. Processing history reuses the local application SQLite database and contains metadata only.
+
 ## Domain decisions
 
 ### Dataset terminology

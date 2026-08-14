@@ -15,8 +15,13 @@ public static class DependencyInjection
             options.UseSqlite($"Data Source={resolvedPath}"));
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
         services.AddScoped<IImportProfileRepository, ImportProfileRepository>();
+        services.AddScoped<IImportHistoryRepository, ImportHistoryRepository>();
         services.AddTransient<IDataFileReader, CsvDataFileReader>();
         services.AddTransient<IDataFileReader, XlsxDataFileReader>();
+        services.AddTransient<IDataFileWriter, CsvDataFileWriter>();
+        services.AddTransient<IDataFileWriter, XlsxDataFileWriter>();
+        services.AddTransient<IDataFileWriter, SqliteDataFileWriter>();
+        services.AddTransient<IErrorReportWriter, CsvErrorReportWriter>();
 
         return services;
     }

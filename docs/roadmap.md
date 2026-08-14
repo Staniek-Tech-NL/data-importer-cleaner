@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M7 — Export and history
-**Completed milestone:** M6 — Deduplication
+**Current milestone:** M8 — Portfolio release
+**Completed milestone:** M7 — Export and history
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -51,9 +51,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.6.0 — Export and history
 
-- CSV, XLSX and SQLite export;
-- export filters and error report;
-- processing summary and local history.
+- [x] CSV, XLSX and SQLite export;
+- [x] export filters and error report;
+- [x] processing summary and local history.
 
 ### v0.9.0 — Release candidate
 

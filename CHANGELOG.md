@@ -41,3 +41,8 @@ All notable changes to this project will be documented in this file.
 - Mark-for-review, keep-first, keep-last and remove-all duplicate resolution actions.
 - Dedicated WPF duplicate-key configuration and group review screen.
 - Duplicate-key column selection persisted with versioned import profiles.
+- CSV, XLSX and SQLite export using mapped, non-ignored columns and current working values.
+- All, valid, invalid and modified row filters with deterministic invariant value formatting.
+- Independent CSV rejected-row error report.
+- Processing summary and recent local import/export history metadata.
+- Create-new output safety that refuses to overwrite any existing file.
