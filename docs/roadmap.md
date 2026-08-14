@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M2 — File import  
-**Completed milestone:** M1 — Foundation  
+**Current milestone:** M3 — Profiling and mapping
+**Completed milestone:** M2 — File import
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -18,9 +18,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 - [x] EF Core SQLite model and initial migration;
 - [x] initial domain contracts and tests;
 - [x] CI and repository documentation;
-- [ ] CSV import;
-- [ ] XLSX import and worksheet selection;
-- [ ] preview grid and basic type inference.
+- [x] CSV import;
+- [x] XLSX import and worksheet selection;
+- [x] preview grid and basic type inference.
 
 ### v0.2.0 — Profiling and mapping
 

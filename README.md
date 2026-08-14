@@ -28,7 +28,8 @@ Validation and cleaning remain separate. The validation engine can run before an
 | Dependency injection and logging | Complete | M1 |
 | SQLite model and initial migration | Complete | M1 |
 | Domain foundations and processing contracts | Complete | M1 |
-| CSV/XLSX import and preview | Planned | M2 |
+| CSV import and preview | Complete | M2 |
+| XLSX import and worksheet selection | Complete | M2 |
 | Data profiling and column mapping | Planned | M3 |
 | Validation engine | Planned | M4 |
 | Cleaning engine and before/after review | Planned | M5 |
@@ -58,7 +59,7 @@ DataCleaner.App ────────> DataCleaner.Application ────�
 
 - `DataCleaner.Domain` contains framework-independent business concepts.
 - `DataCleaner.Application` declares workflows and ports for files and persistence.
-- `DataCleaner.Infrastructure` contains EF Core, SQLite and future CSV/XLSX adapters.
+- `DataCleaner.Infrastructure` contains EF Core, SQLite and CSV/XLSX adapters.
 - `DataCleaner.App` is the WPF composition and presentation layer.
 
 The domain avoids names such as `DataSet` and `DataRow` that collide with `System.Data`. Technical data types and semantic types are modeled separately. More detail is available in [Architecture](docs/architecture.md) and [Domain model](docs/domain-model.md).
@@ -69,10 +70,9 @@ The domain avoids names such as `DataSet` and `DataRow` that collide with `Syste
 - WPF with an MVVM-oriented presentation layer
 - Microsoft.Extensions.Hosting, dependency injection and logging
 - Entity Framework Core and SQLite
+- Open XML SDK for XLSX workbooks
 - xUnit and coverlet
 - GitHub Actions and Dependabot
-
-CSV and XLSX libraries will be added in M2 when their adapters are implemented.
 
 ## Repository structure
 

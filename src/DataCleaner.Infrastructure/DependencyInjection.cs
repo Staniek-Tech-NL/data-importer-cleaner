@@ -1,3 +1,5 @@
+using DataCleaner.Application.Abstractions;
+using DataCleaner.Infrastructure.Files;
 using DataCleaner.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +14,8 @@ public static class DependencyInjection
         services.AddDbContext<DataCleanerDbContext>(options =>
             options.UseSqlite($"Data Source={resolvedPath}"));
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
+        services.AddTransient<IDataFileReader, CsvDataFileReader>();
+        services.AddTransient<IDataFileReader, XlsxDataFileReader>();
 
         return services;
     }

@@ -20,3 +20,6 @@ All notable changes to this project will be documented in this file.
 - Structured issue forms and pull request template.
 - Dependabot configuration for NuGet and GitHub Actions.
 - Tag-driven Windows packaging and draft GitHub release workflow.
+- CSV import with delimiter detection, quoted-field handling, selectable encoding and culture-aware type inference.
+- XLSX workbook discovery, worksheet selection, header detection and empty-row handling.
+- Read-only data preview with basic technical type inference in the WPF application.
