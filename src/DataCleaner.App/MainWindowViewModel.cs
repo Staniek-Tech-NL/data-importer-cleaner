@@ -2,13 +2,20 @@ using System.ComponentModel;
 using System.Data;
 using System.Globalization;
 using System.IO;
+using System.Collections.ObjectModel;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using DataCleaner.Application.Abstractions;
+using DataCleaner.Application.Profiling;
 using DataCleaner.Domain.Data;
+using DataCleaner.Domain.Profiles;
 
 namespace DataCleaner.App;
 
-public sealed class MainWindowViewModel(IDataImportService importService) : INotifyPropertyChanged
+public sealed class MainWindowViewModel(
+    IDataImportService importService,
+    IDataProfilingService profilingService,
+    IImportProfileRepository profileRepository) : INotifyPropertyChanged
 {
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
     private DataView? _preview;
@@ -18,6 +25,10 @@ public sealed class MainWindowViewModel(IDataImportService importService) : INot
     private string? _selectedWorksheet;
     private string _selectedEncoding = "UTF-8";
     private string? _pendingFilePath;
+    private ImportedDataset? _dataset;
+    private IReadOnlyList<ImportProfile> _savedProfiles = [];
+    private ImportProfile? _selectedProfile;
+    private string _profileName = string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -63,6 +74,34 @@ public sealed class MainWindowViewModel(IDataImportService importService) : INot
 
     public bool HasPreview => Preview is not null;
 
+    public ObservableCollection<ColumnProfileViewModel> ColumnProfiles { get; } = [];
+
+    public bool HasColumnProfiles => ColumnProfiles.Count > 0;
+
+    public IReadOnlyList<ImportProfile> SavedProfiles
+    {
+        get => _savedProfiles;
+        private set => SetField(ref _savedProfiles, value);
+    }
+
+    public ImportProfile? SelectedProfile
+    {
+        get => _selectedProfile;
+        set
+        {
+            if (SetField(ref _selectedProfile, value) && value is not null)
+            {
+                ProfileName = value.Name;
+            }
+        }
+    }
+
+    public string ProfileName
+    {
+        get => _profileName;
+        set => SetField(ref _profileName, value ?? string.Empty);
+    }
+
     public IReadOnlyList<string> WorksheetNames
     {
         get => _worksheetNames;
@@ -82,6 +121,18 @@ public sealed class MainWindowViewModel(IDataImportService importService) : INot
     }
 
     public bool HasWorksheetSelection => WorksheetNames.Count > 1;
+
+    public async Task InitializeAsync()
+    {
+        try
+        {
+            await ReloadProfilesAsync();
+        }
+        catch (DbException exception)
+        {
+            StatusMessage = $"Saved profiles could not be loaded: {exception.Message}";
+        }
+    }
 
     public async Task PrepareFileAsync(string filePath)
     {
@@ -154,6 +205,82 @@ public sealed class MainWindowViewModel(IDataImportService importService) : INot
         }
     }
 
+    public async Task SaveProfileAsync()
+    {
+        if (_dataset is null || ColumnProfiles.Count == 0)
+        {
+            StatusMessage = "Import a file before saving a profile.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ProfileName))
+        {
+            StatusMessage = "Enter a profile name.";
+            return;
+        }
+
+        var mappings = ColumnProfiles
+            .Select(column => new ColumnMapping(
+                column.SourceColumn,
+                column.TargetField,
+                column.IsIgnored))
+            .ToArray();
+        var profile = SelectedProfile is not null
+            && string.Equals(SelectedProfile.Name, ProfileName.Trim(), StringComparison.OrdinalIgnoreCase)
+                ? SelectedProfile
+                : SavedProfiles.FirstOrDefault(candidate => string.Equals(
+                    candidate.Name,
+                    ProfileName.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                    ?? new ImportProfile(ProfileName, CultureInfo.CurrentCulture.Name, mappings);
+
+        if (profile.ColumnMappings.Count > 0)
+        {
+            profile.Rename(ProfileName);
+            profile.UpdateConfiguration(CultureInfo.CurrentCulture.Name, mappings);
+        }
+
+        try
+        {
+            await profileRepository.SaveAsync(profile);
+            await ReloadProfilesAsync(profile.Id);
+            StatusMessage = $"Profile '{profile.Name}' version {profile.ProfileVersion} saved.";
+        }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException or ArgumentException)
+        {
+            StatusMessage = $"Profile could not be saved: {exception.Message}";
+        }
+    }
+
+    public void ApplySelectedProfile()
+    {
+        if (_dataset is null || SelectedProfile is null)
+        {
+            StatusMessage = "Select a saved profile to apply.";
+            return;
+        }
+
+        var mappings = SelectedProfile.ColumnMappings.ToDictionary(
+            mapping => mapping.SourceColumn,
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var column in ColumnProfiles)
+        {
+            if (mappings.TryGetValue(column.SourceColumn, out var mapping))
+            {
+                column.TargetField = mapping.TargetField ?? column.SourceColumn;
+                column.IsIgnored = mapping.IsIgnored;
+            }
+            else
+            {
+                column.TargetField = column.SourceColumn;
+                column.IsIgnored = false;
+            }
+        }
+
+        RefreshPreview();
+        StatusMessage = $"Profile '{SelectedProfile.Name}' version {SelectedProfile.ProfileVersion} applied.";
+    }
+
     private async Task ImportCoreAsync(string filePath, string? worksheetName)
     {
         var request = new ImportRequest(
@@ -162,34 +289,71 @@ public sealed class MainWindowViewModel(IDataImportService importService) : INot
             CultureInfo.CurrentCulture.Name,
             SelectedEncoding);
         var dataset = await importService.ImportAsync(request);
-        Preview = CreatePreview(dataset);
+        _dataset = dataset;
+        var profiles = profilingService.Profile(dataset, CultureInfo.CurrentCulture.Name);
+        ColumnProfiles.Clear();
+        for (var index = 0; index < profiles.Count; index++)
+        {
+            ColumnProfiles.Add(new ColumnProfileViewModel(index, profiles[index], RefreshPreview));
+        }
+
+        OnPropertyChanged(nameof(HasColumnProfiles));
+        ProfileName = Path.GetFileNameWithoutExtension(request.FilePath);
+        SelectedProfile = null;
+        RefreshPreview();
         DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
         StatusMessage = "Import complete. The source file was not modified.";
     }
 
-    private static DataView CreatePreview(ImportedDataset dataset)
+    private void RefreshPreview()
+    {
+        if (_dataset is not null)
+        {
+            Preview = CreatePreview(_dataset, ColumnProfiles);
+        }
+    }
+
+    private static DataView CreatePreview(
+        ImportedDataset dataset,
+        IReadOnlyCollection<ColumnProfileViewModel> mappings)
     {
         var table = new DataTable(dataset.SourceName)
         {
             Locale = CultureInfo.CurrentCulture
         };
-        foreach (var column in dataset.Columns)
+        var visibleMappings = mappings.Where(mapping => !mapping.IsIgnored).ToArray();
+        var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mapping in visibleMappings)
         {
-            table.Columns.Add(column.SourceName, typeof(object));
+            var baseName = string.IsNullOrWhiteSpace(mapping.TargetField)
+                ? mapping.SourceColumn
+                : mapping.TargetField.Trim();
+            usedNames.TryGetValue(baseName, out var count);
+            count++;
+            usedNames[baseName] = count;
+            table.Columns.Add(count == 1 ? baseName : $"{baseName} ({count})", typeof(object));
         }
 
         foreach (var importedRow in dataset.Rows)
         {
             var row = table.NewRow();
-            for (var index = 0; index < dataset.Columns.Count; index++)
+            for (var index = 0; index < visibleMappings.Length; index++)
             {
-                row[index] = importedRow.Cells[index].CurrentValue ?? DBNull.Value;
+                row[index] = importedRow.Cells[visibleMappings[index].ColumnIndex].CurrentValue ?? DBNull.Value;
             }
 
             table.Rows.Add(row);
         }
 
         return table.DefaultView;
+    }
+
+    private async Task ReloadProfilesAsync(Guid? selectedId = null)
+    {
+        SavedProfiles = await profileRepository.GetAllAsync();
+        SelectedProfile = selectedId.HasValue
+            ? SavedProfiles.FirstOrDefault(profile => profile.Id == selectedId.Value)
+            : null;
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

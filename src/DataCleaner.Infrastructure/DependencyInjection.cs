@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddDbContext<DataCleanerDbContext>(options =>
             options.UseSqlite($"Data Source={resolvedPath}"));
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
+        services.AddScoped<IImportProfileRepository, ImportProfileRepository>();
         services.AddTransient<IDataFileReader, CsvDataFileReader>();
         services.AddTransient<IDataFileReader, XlsxDataFileReader>();
 

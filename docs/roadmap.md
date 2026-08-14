@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M3 — Profiling and mapping
-**Completed milestone:** M2 — File import
+**Current milestone:** M4 — Validation
+**Completed milestone:** M3 — Profiling and mapping
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -24,10 +24,10 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.2.0 — Profiling and mapping
 
-- column statistics and type inference;
-- source-to-target mapping;
-- ignored columns;
-- versioned import profiles and persistence.
+- [x] column statistics and type inference;
+- [x] source-to-target mapping;
+- [x] ignored columns;
+- [x] versioned import profiles and persistence.
 
 ### v0.3.0 — Validation
 

@@ -24,4 +24,39 @@ public sealed class ProfileAndDuplicateDefinitionTests
         Assert.Equal("Customer Import Europe", profile.Name);
         Assert.True(profile.UpdatedAtUtc >= profile.CreatedAtUtc);
     }
+
+    [Fact]
+    public void UpdatingProfileMappings_IncrementsVersionOnlyForARealChange()
+    {
+        var profile = new ImportProfile(
+            "Customer Import",
+            "en-US",
+            [new ColumnMapping("Email", "EmailAddress")]);
+
+        profile.UpdateConfiguration(
+            "en-US",
+            [new ColumnMapping("Email", "EmailAddress")]);
+        Assert.Equal(1, profile.ProfileVersion);
+
+        profile.UpdateConfiguration(
+            "en-US",
+            [new ColumnMapping("Email", "PrimaryEmail")]);
+
+        Assert.Equal(2, profile.ProfileVersion);
+        Assert.Equal("PrimaryEmail", profile.ColumnMappings[0].TargetField);
+    }
+
+    [Fact]
+    public void Profile_RejectsDuplicateSourceMappings()
+    {
+        var action = () => new ImportProfile(
+            "Invalid",
+            columnMappings:
+            [
+                new ColumnMapping("Email", "PrimaryEmail"),
+                new ColumnMapping("email", "BackupEmail")
+            ]);
+
+        Assert.Throws<ArgumentException>(action);
+    }
 }

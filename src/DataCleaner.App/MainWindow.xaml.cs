@@ -32,4 +32,10 @@ public partial class MainWindow : Window
 
     private async void ImportWorksheet_Click(object sender, RoutedEventArgs e) =>
         await _viewModel.ImportSelectedWorksheetAsync();
+
+    private async void SaveProfile_Click(object sender, RoutedEventArgs e) =>
+        await _viewModel.SaveProfileAsync();
+
+    private void ApplyProfile_Click(object sender, RoutedEventArgs e) =>
+        _viewModel.ApplySelectedProfile();
 }

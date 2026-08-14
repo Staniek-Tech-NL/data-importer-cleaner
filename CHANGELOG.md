@@ -23,3 +23,7 @@ All notable changes to this project will be documented in this file.
 - CSV import with delimiter detection, quoted-field handling, selectable encoding and culture-aware type inference.
 - XLSX workbook discovery, worksheet selection, header detection and empty-row handling.
 - Read-only data preview with basic technical type inference in the WPF application.
+- Column profiling with empty, unique, duplicate and invalid counts plus numeric statistics.
+- Initial email semantic classification.
+- Interactive source-to-target column mapping and ignored-column preview.
+- Reusable, versioned import profiles persisted in SQLite.

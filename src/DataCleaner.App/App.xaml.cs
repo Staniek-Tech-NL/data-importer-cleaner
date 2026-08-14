@@ -42,6 +42,9 @@ public partial class App : System.Windows.Application
             var databaseInitializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
             await databaseInitializer.InitializeAsync();
 
+            var viewModel = _host.Services.GetRequiredService<MainWindowViewModel>();
+            await viewModel.InitializeAsync();
+
             _host.Services.GetRequiredService<MainWindow>().Show();
         }
         catch (Exception exception)
