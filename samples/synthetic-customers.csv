@@ -1,0 +1,13 @@
+Customer ID,Full Name,Email,Country,Signup Date,Revenue,Notes
+C-1001,"  anna   nowak ",ANNA@EXAMPLE.COM,PL,2026-01-14,"1 250,50",priority
+C-1002,Jan Kowalski,jan.kowalski@example.com,Poland,14.02.2026,"830,00",
+C-1003,Marie de Vries,marie@example.nl,NL,2026-03-01,420.75,N/A
+C-1004,Lars Jansen,lars@example.nl,Netherlands,01-03-2026,"2.100,00",newsletter
+C-1005,Sofia Rossi,sofia.rossi@example.it,IT,2026-03-18,940.20,
+C-1006,Tom Smith,tom.smith@example.com,UK,03/20/2026,115.00,follow up
+C-1007,Ewa Zielińska,ewa.zielinska@example.com,PL,2026-04-02,"350,10",NULL
+C-1008,No Email,not-an-email,DE,2026-04-07,99.99,invalid email example
+C-1009,Missing Country,missing.country@example.com,,2026-04-10,500.00,required-field example
+C-1010,Duplicate Anna,anna@example.com,PL,2026-01-14,"1 250,50",duplicate key example
+C-1011,Whitespace User, whitespace.user@example.com ,BE,2026-05-01,75.25,"  extra   spaces  "
+C-1012,Case Duplicate,ANNA@example.com,PL,2026-06-01,80.00,duplicate after normalization

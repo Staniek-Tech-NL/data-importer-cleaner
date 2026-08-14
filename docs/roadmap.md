@@ -57,11 +57,12 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.9.0 — Release candidate
 
-- performance measurements and responsiveness work;
-- complete automated test coverage for MVP behavior;
-- accessibility and UI polish;
-- synthetic demonstration datasets;
-- screenshots and portfolio case study.
+- [x] performance measurements and responsiveness work;
+- [x] complete automated test coverage for MVP behavior;
+- [x] accessibility and UI polish;
+- [x] synthetic demonstration datasets;
+- [ ] final released-build screenshot (blocked in the current automation environment);
+- [x] portfolio case study and locally verified RC1 package.
 
 ### v1.0.0 — Stable portfolio release
 

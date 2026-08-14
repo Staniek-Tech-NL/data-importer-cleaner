@@ -11,17 +11,17 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 ## Pre-release checklist
 
 - [ ] The intended milestone is complete and remaining work is moved explicitly.
-- [ ] `CHANGELOG.md` contains user-visible changes and known limitations.
-- [ ] The version is consistent across release metadata.
-- [ ] Release build completes with zero warnings and zero errors.
+- [x] `CHANGELOG.md` contains user-visible changes and known limitations.
+- [x] The version is consistent across release metadata.
+- [x] Release build completes with zero warnings and zero errors.
 - [ ] All automated tests pass on GitHub Actions.
-- [ ] Database migration behavior is tested.
-- [ ] No real customer data, local databases, secrets or logs are included.
-- [ ] README status and support matrix reflect the released build.
+- [x] Database migration behavior is tested.
+- [x] No real customer data, local databases, secrets or logs are included.
+- [x] README status and support matrix reflect the released build.
 - [ ] Screenshots were captured from the released version.
 - [ ] Installation and first-run instructions were tested on a clean Windows environment.
-- [ ] The repository has an explicit license before any open-source release.
-- [ ] Security policy and release notes are linked from the release page.
+- [x] The repository has an explicit license before any public release.
+- [x] Security policy and release notes are ready to link from the release page.
 
 ## Tagging and publication
 

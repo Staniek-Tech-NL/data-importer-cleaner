@@ -7,6 +7,7 @@
         MinWidth="760"
         MinHeight="480"
         WindowStartupLocation="CenterScreen"
+        AutomationProperties.Name="Data Importer and Cleaner release candidate"
         Background="#F8FAFC">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -38,12 +39,15 @@
                               Height="36"
                               Margin="0,0,12,0"
                               ItemsSource="{Binding AvailableEncodings}"
-                              SelectedItem="{Binding SelectedEncoding}" />
+                              SelectedItem="{Binding SelectedEncoding}"
+                              AutomationProperties.Name="CSV encoding" />
                     <Button Width="150"
                             Height="40"
                             IsEnabled="{Binding IsImportEnabled}"
                             Click="SelectFile_Click"
-                            Content="Select file" />
+                            Content="_Select file"
+                            ToolTip="Select a CSV or XLSX source file"
+                            AutomationProperties.Name="Select source file" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -81,7 +85,8 @@
                             DockPanel.Dock="Right"
                             IsEnabled="{Binding IsImportEnabled}"
                             Click="ImportWorksheet_Click"
-                            Content="Import worksheet" />
+                            Content="_Import worksheet"
+                            AutomationProperties.Name="Import selected worksheet" />
                     <TextBlock Margin="0,0,12,0"
                                VerticalAlignment="Center"
                                Foreground="#1E3A8A"
@@ -89,7 +94,8 @@
                     <ComboBox MinWidth="220"
                               Height="36"
                               ItemsSource="{Binding WorksheetNames}"
-                              SelectedItem="{Binding SelectedWorksheet}" />
+                              SelectedItem="{Binding SelectedWorksheet}"
+                              AutomationProperties.Name="Worksheet" />
                 </DockPanel>
             </Border>
 
@@ -152,7 +158,8 @@
                                      Height="34"
                                      Margin="10,0,0,0"
                                      VerticalContentAlignment="Center"
-                                     Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}" />
+                                     Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Profile name" />
                             <TextBlock Grid.Column="3"
                                        VerticalAlignment="Center"
                                        Text="Saved profiles" />
@@ -161,18 +168,21 @@
                                       Margin="10,0,0,0"
                                       DisplayMemberPath="Name"
                                       ItemsSource="{Binding SavedProfiles}"
-                                      SelectedItem="{Binding SelectedProfile}" />
+                                      SelectedItem="{Binding SelectedProfile}"
+                                      AutomationProperties.Name="Saved import profile" />
                             <Button Grid.Column="5"
                                     Width="110"
                                     Height="34"
                                     Margin="10,0,0,0"
                                     Click="ApplyProfile_Click"
-                                    Content="Apply" />
+                                    Content="_Apply"
+                                    AutomationProperties.Name="Apply selected profile" />
                             <Button Grid.Column="7"
                                     Width="120"
                                     Height="34"
                                     Click="SaveProfile_Click"
-                                    Content="Save profile" />
+                                    Content="_Save profile"
+                                    AutomationProperties.Name="Save import profile" />
                         </Grid>
 
                         <DataGrid Grid.Row="1"
@@ -254,7 +264,8 @@
                                     DockPanel.Dock="Right"
                                     IsEnabled="{Binding IsImportEnabled}"
                                     Click="RunValidation_Click"
-                                    Content="Run validation" />
+                                    Content="Run _validation"
+                                    AutomationProperties.Name="Run validation" />
                             <TextBlock VerticalAlignment="Center"
                                        FontSize="15"
                                        FontWeight="SemiBold"
@@ -319,7 +330,8 @@
                                     DockPanel.Dock="Right"
                                     IsEnabled="{Binding IsImportEnabled}"
                                     Click="RunCleaning_Click"
-                                    Content="Run cleaning" />
+                                    Content="Run _cleaning"
+                                    AutomationProperties.Name="Run cleaning" />
                             <TextBlock VerticalAlignment="Center"
                                        FontSize="15"
                                        FontWeight="SemiBold"
@@ -389,10 +401,12 @@
                             <Button Width="150" Height="36" DockPanel.Dock="Right"
                                     IsEnabled="{Binding IsImportEnabled}"
                                     Click="RunDuplicateDetection_Click"
-                                    Content="Find duplicates" />
+                                    Content="Find _duplicates"
+                                    AutomationProperties.Name="Find duplicates" />
                             <ComboBox Width="150" Margin="0,0,12,0" DockPanel.Dock="Right"
                                       ItemsSource="{Binding AvailableDuplicateActions}"
-                                      SelectedItem="{Binding SelectedDuplicateAction}" />
+                                      SelectedItem="{Binding SelectedDuplicateAction}"
+                                      AutomationProperties.Name="Duplicate resolution action" />
                             <TextBlock VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold"
                                        Text="{Binding DuplicateSummary}" />
                         </DockPanel>
@@ -429,12 +443,15 @@
                         <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding ProcessingSummary}" />
                         <DockPanel Grid.Row="1" Margin="0,14,0,14">
                             <Button Width="160" Height="36" Margin="12,0,0,0" DockPanel.Dock="Right"
-                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportData_Click" Content="Export new file" />
+                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportData_Click" Content="_Export new file"
+                                    AutomationProperties.Name="Export new data file" />
                             <Button Width="160" Height="36" Margin="12,0,0,0" DockPanel.Dock="Right"
-                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportErrors_Click" Content="Export error report" />
+                                    IsEnabled="{Binding IsImportEnabled}" Click="ExportErrors_Click" Content="Export _error report"
+                                    AutomationProperties.Name="Export rejected row error report" />
                             <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Rows" />
                             <ComboBox Width="150" ItemsSource="{Binding AvailableExportFilters}"
-                                      SelectedItem="{Binding SelectedExportFilter}" />
+                                      SelectedItem="{Binding SelectedExportFilter}"
+                                      AutomationProperties.Name="Export row filter" />
                         </DockPanel>
                         <TextBlock Grid.Row="2" Margin="0,4,0,6" FontWeight="SemiBold" Text="Recent local processing history" />
                         <DataGrid Grid.Row="3" ItemsSource="{Binding HistoryEntries}" AutoGenerateColumns="False"
@@ -458,6 +475,7 @@
         <Border Grid.Row="2" Background="#E2E8F0" Padding="28,0">
             <TextBlock VerticalAlignment="Center"
                        Foreground="#334155"
+                       AutomationProperties.LiveSetting="Polite"
                        Text="{Binding StatusMessage}" />
         </Border>
     </Grid>

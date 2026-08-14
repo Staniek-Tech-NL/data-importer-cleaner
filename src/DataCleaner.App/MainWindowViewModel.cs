@@ -57,7 +57,7 @@ public sealed class MainWindowViewModel(
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string ApplicationName => "Data Importer & Cleaner";
+    public string ApplicationName => "Data Importer & Cleaner · 0.9 RC1";
 
     public IReadOnlyList<string> AvailableEncodings { get; } = ["UTF-8", "Windows-1250"];
 
@@ -513,11 +513,11 @@ public sealed class MainWindowViewModel(
         StatusMessage = "Running validation…";
         try
         {
-            var result = await validationService.ValidateAsync(
+            var result = await Task.Run(() => validationService.ValidateAsync(
                 _dataset,
                 definitions,
                 ValidationPass.BeforeCleaning,
-                CultureInfo.CurrentCulture.Name);
+                CultureInfo.CurrentCulture.Name));
             ApplyValidationResult(result);
             StatusMessage = result.Issues.Count == 0
                 ? "Validation complete. No issues found."
@@ -559,22 +559,22 @@ public sealed class MainWindowViewModel(
         StatusMessage = "Validating, cleaning and validating again…";
         try
         {
-            var beforeValidation = await validationService.ValidateAsync(
+            var beforeValidation = await Task.Run(() => validationService.ValidateAsync(
                 _dataset,
                 validationDefinitions,
                 ValidationPass.BeforeCleaning,
-                CultureInfo.CurrentCulture.Name);
-            var cleaningResult = await cleaningService.CleanAsync(
+                CultureInfo.CurrentCulture.Name));
+            var cleaningResult = await Task.Run(() => cleaningService.CleanAsync(
                 _dataset,
                 cleaningDefinitions,
-                CultureInfo.CurrentCulture.Name);
+                CultureInfo.CurrentCulture.Name));
             _dataset = cleaningResult.Dataset;
-            UpdateColumnProfiles();
-            var afterValidation = await validationService.ValidateAsync(
+            await UpdateColumnProfilesAsync();
+            var afterValidation = await Task.Run(() => validationService.ValidateAsync(
                 _dataset,
                 validationDefinitions,
                 ValidationPass.AfterCleaning,
-                CultureInfo.CurrentCulture.Name);
+                CultureInfo.CurrentCulture.Name));
             ApplyValidationResult(afterValidation);
 
             var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
@@ -621,10 +621,10 @@ public sealed class MainWindowViewModel(
         try
         {
             var definition = new DuplicateDefinition(keyColumns.Select(column => _dataset.Columns[column.ColumnIndex].Id));
-            var result = await duplicateDetectionService.ResolveAsync(
+            var result = await Task.Run(() => duplicateDetectionService.ResolveAsync(
                 _dataset,
                 definition,
-                SelectedDuplicateAction);
+                SelectedDuplicateAction));
             _dataset = result.Dataset;
             _duplicatesRemoved += result.RemovedRowNumbers.Count;
             DuplicateGroups = result.Detection.Groups.Select(group => new DuplicateGroupViewModel(
@@ -634,7 +634,7 @@ public sealed class MainWindowViewModel(
                 group.RowNumbers.Count)).ToArray();
             DuplicateSummary = $"{result.Detection.Groups.Count:N0} groups · {result.Detection.DuplicateRowCount:N0} matching rows · {result.RemovedRowNumbers.Count:N0} removed";
             DatasetSummary = $"{_dataset.SourceName} · {_dataset.Rows.Count:N0} rows · {_dataset.Columns.Count:N0} columns";
-            UpdateColumnProfiles();
+            await UpdateColumnProfilesAsync();
             UpdateProcessingSummary();
             RefreshPreview();
             StatusMessage = "Duplicate detection complete. Review the Duplicates tab.";
@@ -662,10 +662,10 @@ public sealed class MainWindowViewModel(
         try
         {
             var exportDataset = CreateExportDataset();
-            var result = await exportService.ExportAsync(new ExportRequest(
+            var result = await Task.Run(() => exportService.ExportAsync(new ExportRequest(
                 filePath,
                 exportDataset,
-                SelectedExportFilter));
+                SelectedExportFilter)));
             try
             {
                 await SaveHistoryAsync("Exported", Path.GetFileName(result.FilePath));
@@ -723,13 +723,13 @@ public sealed class MainWindowViewModel(
             worksheetName,
             CultureInfo.CurrentCulture.Name,
             SelectedEncoding);
-        var dataset = await importService.ImportAsync(request);
+        var dataset = await Task.Run(() => importService.ImportAsync(request));
         _dataset = dataset;
         _currentImportId = Guid.NewGuid();
         _importStartedAtUtc = DateTimeOffset.UtcNow;
         _sourceRowCount = dataset.Rows.Count;
         _duplicatesRemoved = 0;
-        var profiles = profilingService.Profile(dataset, CultureInfo.CurrentCulture.Name);
+        var profiles = await Task.Run(() => profilingService.Profile(dataset, CultureInfo.CurrentCulture.Name));
         ColumnProfiles.Clear();
         for (var index = 0; index < profiles.Count; index++)
         {
@@ -989,14 +989,14 @@ public sealed class MainWindowViewModel(
         UpdateProcessingSummary();
     }
 
-    private void UpdateColumnProfiles()
+    private async Task UpdateColumnProfilesAsync()
     {
         if (_dataset is null)
         {
             return;
         }
 
-        var profiles = profilingService.Profile(_dataset, CultureInfo.CurrentCulture.Name);
+        var profiles = await Task.Run(() => profilingService.Profile(_dataset, CultureInfo.CurrentCulture.Name));
         for (var index = 0; index < profiles.Count && index < ColumnProfiles.Count; index++)
         {
             ColumnProfiles[index].UpdateProfile(profiles[index]);

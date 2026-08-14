@@ -15,12 +15,15 @@ This directory contains the maintained project documentation. The source code is
 - [Domain model](domain-model.md) — current domain concepts and invariants.
 - [Development guide](development.md) — prerequisites, build commands and coding rules.
 - [Testing strategy](testing-strategy.md) — test scope and quality expectations.
+- [Performance evidence](performance.md) — verified synthetic 50,000-row measurement.
+- [Portfolio case study](portfolio-case-study.md) — product, architecture and delivery evidence.
 - [Architecture decisions](decisions/README.md) — durable records of important technical choices.
 
 ## Project operations
 
 - [GitHub project management](github-project-management.md) — milestones, labels and branch policy.
 - [Release process](release-process.md) — versioning, packaging and publication checklist.
+- [RC1 release notes](releases/v0.9.0-rc.1.md) — verified scope and known limitations.
 
 ## Documentation maintenance
 
