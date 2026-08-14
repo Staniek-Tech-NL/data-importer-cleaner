@@ -14,6 +14,8 @@ public static class DependencyInjection
         services.AddTransient<IDataProfilingService, DataProfilingService>();
         services.AddTransient<IValidationEngine, ValidationEngine>();
         services.AddTransient<IDataValidationService, DataValidationService>();
+        services.AddTransient<ICleaningEngine, CleaningEngine>();
+        services.AddTransient<IDataCleaningService, DataCleaningService>();
         return services;
     }
 }

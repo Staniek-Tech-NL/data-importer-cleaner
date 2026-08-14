@@ -12,4 +12,8 @@ Validation definitions bind a rule kind and severity to a source column. Require
 
 Validation configuration is stored with the versioned import profile. Before-cleaning and after-cleaning passes share the same deterministic engine so later cleaning work can distinguish source problems from issues remaining after transformations.
 
-Validation and cleaning remain intentionally separate. Concrete cleaning rules are introduced in their corresponding milestone.
+Cleaning definitions bind an ordered rule to a source column. Available rules trim text, normalize internal whitespace and casing, normalize email values, replace configured null tokens, resolve country aliases and parse dates and decimals using an explicit culture. Successful date, decimal and email normalization also updates the column's technical or semantic metadata.
+
+The cleaning engine creates new cells and rows rather than mutating imported values. Each cell continues to expose its original source, parsed value and current working value. Every effective rule application produces a before/after change entry, while modified row state can coexist with unrelated states such as duplicate.
+
+Cleaning configuration is stored with versioned import profiles. The application validates before cleaning, runs rules in deterministic order, profiles the resulting data and validates again so users can distinguish source issues from remaining output issues.

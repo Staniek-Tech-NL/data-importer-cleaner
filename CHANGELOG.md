@@ -31,3 +31,8 @@ All notable changes to this project will be documented in this file.
 - Configurable info, warning and error severities with before/after-cleaning validation passes.
 - Row and column issue presentation, row-state updates and rejected-row reports.
 - Validation rule configuration persisted with versioned import profiles.
+- Deterministic trimming, whitespace, casing, email and null-token cleaning rules.
+- Configurable country aliases and culture-aware date and decimal normalization.
+- Ordered cleaning passes that preserve source, parsed and current values.
+- Before/after change review with validation before and after cleaning.
+- Cleaning rule configuration persisted with versioned import profiles.

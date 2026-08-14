@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using DataCleaner.Application.Abstractions;
 using DataCleaner.Application.Profiling;
 using DataCleaner.Application.Processing;
+using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Data;
 using DataCleaner.Domain.Profiles;
 using DataCleaner.Domain.Validation;
@@ -18,6 +19,7 @@ public sealed class MainWindowViewModel(
     IDataImportService importService,
     IDataProfilingService profilingService,
     IDataValidationService validationService,
+    IDataCleaningService cleaningService,
     IImportProfileRepository profileRepository) : INotifyPropertyChanged
 {
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
@@ -35,6 +37,8 @@ public sealed class MainWindowViewModel(
     private IReadOnlyList<ValidationIssueViewModel> _validationIssues = [];
     private IReadOnlyList<RejectedRowViewModel> _rejectedRows = [];
     private string _validationSummary = "Validation has not been run.";
+    private IReadOnlyList<CleaningChangeViewModel> _cleaningChanges = [];
+    private string _cleaningSummary = "Cleaning has not been run.";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -100,6 +104,18 @@ public sealed class MainWindowViewModel(
     {
         get => _validationSummary;
         private set => SetField(ref _validationSummary, value);
+    }
+
+    public IReadOnlyList<CleaningChangeViewModel> CleaningChanges
+    {
+        get => _cleaningChanges;
+        private set => SetField(ref _cleaningChanges, value);
+    }
+
+    public string CleaningSummary
+    {
+        get => _cleaningSummary;
+        private set => SetField(ref _cleaningSummary, value);
     }
 
     public IReadOnlyList<ImportProfile> SavedProfiles
@@ -250,9 +266,11 @@ public sealed class MainWindowViewModel(
                 column.IsIgnored))
             .ToArray();
         ValidationRuleDefinition[] validationRules;
+        CleaningRuleDefinition[] cleaningRules;
         try
         {
             validationRules = BuildValidationDefinitions();
+            cleaningRules = BuildCleaningDefinitions();
         }
         catch (ArgumentException exception)
         {
@@ -271,7 +289,8 @@ public sealed class MainWindowViewModel(
                         ProfileName,
                         CultureInfo.CurrentCulture.Name,
                         mappings,
-                        validationRules);
+                        validationRules,
+                        cleaningRules);
 
         if (profile.ColumnMappings.Count > 0)
         {
@@ -279,7 +298,8 @@ public sealed class MainWindowViewModel(
             profile.UpdateConfiguration(
                 CultureInfo.CurrentCulture.Name,
                 mappings,
-                validationRules: validationRules);
+                validationRules: validationRules,
+                cleaningRules: cleaningRules);
         }
 
         try
@@ -308,6 +328,7 @@ public sealed class MainWindowViewModel(
         foreach (var column in ColumnProfiles)
         {
             column.ResetValidationConfiguration();
+            column.ResetCleaningConfiguration();
             if (mappings.TryGetValue(column.SourceColumn, out var mapping))
             {
                 column.TargetField = mapping.TargetField ?? column.SourceColumn;
@@ -356,6 +377,54 @@ public sealed class MainWindowViewModel(
             }
         }
 
+        foreach (var definition in SelectedProfile.CleaningRules)
+        {
+            var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
+                candidate.SourceColumn,
+                definition.SourceColumn,
+                StringComparison.OrdinalIgnoreCase));
+            if (column is null)
+            {
+                continue;
+            }
+
+            switch (definition.Kind)
+            {
+                case CleaningRuleKind.Trim:
+                    column.TrimText = true;
+                    break;
+                case CleaningRuleKind.NormalizeWhitespace:
+                    column.NormalizeWhitespace = true;
+                    break;
+                case CleaningRuleKind.UpperCase:
+                    column.CaseNormalization = TextCaseNormalization.Upper;
+                    break;
+                case CleaningRuleKind.LowerCase:
+                    column.CaseNormalization = TextCaseNormalization.Lower;
+                    break;
+                case CleaningRuleKind.TitleCase:
+                    column.CaseNormalization = TextCaseNormalization.Title;
+                    break;
+                case CleaningRuleKind.NormalizeEmail:
+                    column.NormalizeEmail = true;
+                    break;
+                case CleaningRuleKind.NullTokens:
+                    column.NullTokens = string.Join(", ", definition.Values);
+                    break;
+                case CleaningRuleKind.CountryAlias:
+                    column.CountryAliases = string.Join(
+                        "; ",
+                        definition.Aliases.Select(alias => $"{alias.Key}={alias.Value}"));
+                    break;
+                case CleaningRuleKind.NormalizeDate:
+                    column.NormalizeDate = true;
+                    break;
+                case CleaningRuleKind.NormalizeDecimal:
+                    column.NormalizeDecimal = true;
+                    break;
+            }
+        }
+
         RefreshPreview();
         StatusMessage = $"Profile '{SelectedProfile.Name}' version {SelectedProfile.ProfileVersion} applied.";
     }
@@ -388,23 +457,7 @@ public sealed class MainWindowViewModel(
                 definitions,
                 ValidationPass.BeforeCleaning,
                 CultureInfo.CurrentCulture.Name);
-            var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
-            ValidationIssues = result.Issues.Select(issue => new ValidationIssueViewModel(
-                issue.RowNumber,
-                columnNames.GetValueOrDefault(issue.ColumnId, "Unknown"),
-                issue.SourceValue,
-                issue.RuleCode,
-                issue.Severity.ToString(),
-                issue.Message)).ToArray();
-            RejectedRows = result.RejectedRows.Select(row => new RejectedRowViewModel(
-                row.RowNumber,
-                row.Issues.Count,
-                string.Join(" | ", row.CurrentValues.Select(value => value?.ToString() ?? "∅"))))
-                .ToArray();
-            var errors = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Error);
-            var warnings = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
-            var infos = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Info);
-            ValidationSummary = $"{errors:N0} errors · {warnings:N0} warnings · {infos:N0} info · {result.RejectedRows.Count:N0} rejected rows";
+            ApplyValidationResult(result);
             StatusMessage = result.Issues.Count == 0
                 ? "Validation complete. No issues found."
                 : "Validation complete. Review the Validation tab.";
@@ -413,6 +466,73 @@ public sealed class MainWindowViewModel(
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {
             StatusMessage = $"Validation could not be completed: {exception.Message}";
+        }
+        finally
+        {
+            IsImportEnabled = true;
+        }
+    }
+
+    public async Task RunCleaningAsync()
+    {
+        if (_dataset is null)
+        {
+            StatusMessage = "Import a file before running cleaning.";
+            return;
+        }
+
+        CleaningRuleDefinition[] cleaningDefinitions;
+        ValidationRuleDefinition[] validationDefinitions;
+        try
+        {
+            cleaningDefinitions = BuildCleaningDefinitions();
+            validationDefinitions = BuildValidationDefinitions();
+        }
+        catch (ArgumentException exception)
+        {
+            StatusMessage = exception.Message;
+            return;
+        }
+
+        IsImportEnabled = false;
+        StatusMessage = "Validating, cleaning and validating again…";
+        try
+        {
+            var beforeValidation = await validationService.ValidateAsync(
+                _dataset,
+                validationDefinitions,
+                ValidationPass.BeforeCleaning,
+                CultureInfo.CurrentCulture.Name);
+            var cleaningResult = await cleaningService.CleanAsync(
+                _dataset,
+                cleaningDefinitions,
+                CultureInfo.CurrentCulture.Name);
+            _dataset = cleaningResult.Dataset;
+            UpdateColumnProfiles();
+            var afterValidation = await validationService.ValidateAsync(
+                _dataset,
+                validationDefinitions,
+                ValidationPass.AfterCleaning,
+                CultureInfo.CurrentCulture.Name);
+            ApplyValidationResult(afterValidation);
+
+            var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
+            CleaningChanges = cleaningResult.Changes.Select(change => new CleaningChangeViewModel(
+                change.RowNumber,
+                columnNames.GetValueOrDefault(change.ColumnId, "Unknown"),
+                change.RuleCode,
+                FormatValue(change.BeforeValue),
+                FormatValue(change.AfterValue),
+                change.Description)).ToArray();
+            var beforeErrors = beforeValidation.Issues.Count(issue => issue.Severity == ValidationSeverity.Error);
+            var afterErrors = afterValidation.Issues.Count(issue => issue.Severity == ValidationSeverity.Error);
+            CleaningSummary = $"{cleaningResult.Changes.Count:N0} changes · validation errors: {beforeErrors:N0} before, {afterErrors:N0} after";
+            StatusMessage = "Cleaning complete. Review the Cleaning and Validation tabs.";
+            RefreshPreview();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            StatusMessage = $"Cleaning could not be completed: {exception.Message}";
         }
         finally
         {
@@ -440,6 +560,7 @@ public sealed class MainWindowViewModel(
         ProfileName = Path.GetFileNameWithoutExtension(request.FilePath);
         SelectedProfile = null;
         ClearValidationResults();
+        ClearCleaningResults();
         RefreshPreview();
         DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
         StatusMessage = "Import complete. The source file was not modified.";
@@ -554,9 +675,161 @@ public sealed class MainWindowViewModel(
         return definitions.ToArray();
     }
 
+    private CleaningRuleDefinition[] BuildCleaningDefinitions()
+    {
+        var definitions = new List<CleaningRuleDefinition>();
+        var order = 0;
+        foreach (var column in ColumnProfiles.Where(column => !column.IsIgnored))
+        {
+            if (column.TrimText)
+            {
+                definitions.Add(new CleaningRuleDefinition(column.SourceColumn, CleaningRuleKind.Trim, order++));
+            }
+
+            if (column.NormalizeWhitespace)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.NormalizeWhitespace,
+                    order++));
+            }
+
+            var nullTokens = SplitConfiguredValues(column.NullTokens);
+            if (nullTokens.Length > 0)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.NullTokens,
+                    order++,
+                    nullTokens));
+            }
+
+            var caseRule = column.CaseNormalization switch
+            {
+                TextCaseNormalization.Upper => CleaningRuleKind.UpperCase,
+                TextCaseNormalization.Lower => CleaningRuleKind.LowerCase,
+                TextCaseNormalization.Title => CleaningRuleKind.TitleCase,
+                _ => (CleaningRuleKind?)null
+            };
+            if (caseRule.HasValue)
+            {
+                definitions.Add(new CleaningRuleDefinition(column.SourceColumn, caseRule.Value, order++));
+            }
+
+            if (column.NormalizeEmail)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.NormalizeEmail,
+                    order++));
+            }
+
+            var aliases = ParseAliases(column.SourceColumn, column.CountryAliases);
+            if (aliases.Count > 0)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.CountryAlias,
+                    order++,
+                    aliases: aliases));
+            }
+
+            if (column.NormalizeDate)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.NormalizeDate,
+                    order++));
+            }
+
+            if (column.NormalizeDecimal)
+            {
+                definitions.Add(new CleaningRuleDefinition(
+                    column.SourceColumn,
+                    CleaningRuleKind.NormalizeDecimal,
+                    order++));
+            }
+        }
+
+        return definitions.ToArray();
+    }
+
+    private static string[] SplitConfiguredValues(string value) => value.Split(
+        [',', ';', '|', '\r', '\n'],
+        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static Dictionary<string, string> ParseAliases(string columnName, string value)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in value.Split(
+            [';', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var separatorIndex = entry.IndexOf('=', StringComparison.Ordinal);
+            if (separatorIndex <= 0 || separatorIndex == entry.Length - 1)
+            {
+                throw new ArgumentException(
+                    $"Country aliases for '{columnName}' must use the Alias=Canonical format.");
+            }
+
+            result[entry[..separatorIndex].Trim()] = entry[(separatorIndex + 1)..].Trim();
+        }
+
+        return result;
+    }
+
+    private void ApplyValidationResult(ValidationResult result)
+    {
+        if (_dataset is null)
+        {
+            return;
+        }
+
+        var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
+        ValidationIssues = result.Issues.Select(issue => new ValidationIssueViewModel(
+            issue.RowNumber,
+            columnNames.GetValueOrDefault(issue.ColumnId, "Unknown"),
+            issue.SourceValue,
+            issue.RuleCode,
+            issue.Severity.ToString(),
+            issue.Message)).ToArray();
+        RejectedRows = result.RejectedRows.Select(row => new RejectedRowViewModel(
+            row.RowNumber,
+            row.Issues.Count,
+            string.Join(" | ", row.CurrentValues.Select(value => value?.ToString() ?? "∅"))))
+            .ToArray();
+        var errors = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Error);
+        var warnings = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
+        var infos = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Info);
+        ValidationSummary = $"{errors:N0} errors · {warnings:N0} warnings · {infos:N0} info · {result.RejectedRows.Count:N0} rejected rows";
+    }
+
+    private void UpdateColumnProfiles()
+    {
+        if (_dataset is null)
+        {
+            return;
+        }
+
+        var profiles = profilingService.Profile(_dataset, CultureInfo.CurrentCulture.Name);
+        for (var index = 0; index < profiles.Count && index < ColumnProfiles.Count; index++)
+        {
+            ColumnProfiles[index].UpdateProfile(profiles[index]);
+        }
+    }
+
+    private static string? FormatValue(object? value) => value switch
+    {
+        null => null,
+        DateTime date => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        decimal number => number.ToString(CultureInfo.InvariantCulture),
+        _ => value.ToString()
+    };
+
     private void OnColumnConfigurationChanged()
     {
         ClearValidationResults();
+        ClearCleaningResults();
         RefreshPreview();
     }
 
@@ -574,6 +847,12 @@ public sealed class MainWindowViewModel(
         ValidationIssues = [];
         RejectedRows = [];
         ValidationSummary = "Validation has not been run for the current configuration.";
+    }
+
+    private void ClearCleaningResults()
+    {
+        CleaningChanges = [];
+        CleaningSummary = "Cleaning has not been run for the current configuration.";
     }
 
     private async Task ReloadProfilesAsync(Guid? selectedId = null)

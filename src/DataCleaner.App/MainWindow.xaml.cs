@@ -41,4 +41,7 @@ public partial class MainWindow : Window
 
     private async void RunValidation_Click(object sender, RoutedEventArgs e) =>
         await _viewModel.RunValidationAsync();
+
+    private async void RunCleaning_Click(object sender, RoutedEventArgs e) =>
+        await _viewModel.RunCleaningAsync();
 }

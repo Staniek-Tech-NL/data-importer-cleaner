@@ -1,4 +1,5 @@
 using DataCleaner.Domain.Duplicates;
+using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Profiles;
 
 namespace DataCleaner.Domain.Tests;
@@ -58,5 +59,30 @@ public sealed class ProfileAndDuplicateDefinitionTests
             ]);
 
         Assert.Throws<ArgumentException>(action);
+    }
+
+    [Fact]
+    public void UpdatingCleaningRules_VersionsOnlyRealConfigurationChanges()
+    {
+        var profile = new ImportProfile(
+            "Cleaning profile",
+            cleaningRules: [new CleaningRuleDefinition("Name", CleaningRuleKind.Trim, 0)]);
+
+        profile.UpdateConfiguration(
+            null,
+            [],
+            cleaningRules: [new CleaningRuleDefinition("Name", CleaningRuleKind.Trim, 0)]);
+        Assert.Equal(1, profile.ProfileVersion);
+
+        profile.UpdateConfiguration(
+            null,
+            [],
+            cleaningRules:
+            [
+                new CleaningRuleDefinition("Name", CleaningRuleKind.Trim, 0),
+                new CleaningRuleDefinition("Name", CleaningRuleKind.TitleCase, 1)
+            ]);
+
+        Assert.Equal(2, profile.ProfileVersion);
     }
 }

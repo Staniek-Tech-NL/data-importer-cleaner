@@ -42,8 +42,31 @@ public interface IDataValidationService
 
 public interface ICleaningEngine
 {
-    Task<ImportedDataset> CleanAsync(
+    Task<CleaningRunResult> CleanAsync(
         ImportedDataset dataset,
         IEnumerable<ICleaningRule> rules,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed record CleaningChange(
+    long RowNumber,
+    Guid ColumnId,
+    string RuleCode,
+    object? BeforeValue,
+    object? AfterValue,
+    string? Description,
+    int ExecutionOrder);
+
+public sealed record CleaningRunResult(
+    ImportedDataset Dataset,
+    DateTimeOffset CompletedAtUtc,
+    IReadOnlyList<CleaningChange> Changes);
+
+public interface IDataCleaningService
+{
+    Task<CleaningRunResult> CleanAsync(
+        ImportedDataset dataset,
+        IEnumerable<CleaningRuleDefinition> definitions,
+        string cultureName,
         CancellationToken cancellationToken = default);
 }

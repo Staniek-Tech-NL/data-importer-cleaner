@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using DataCleaner.Domain.Profiling;
+using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Validation;
 
 namespace DataCleaner.App;
@@ -18,6 +19,14 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
     private decimal? _maximumAllowed;
     private string _allowedValues = string.Empty;
     private ValidationSeverity _severity = ValidationSeverity.Error;
+    private bool _trimText = true;
+    private bool _normalizeWhitespace = true;
+    private TextCaseNormalization _caseNormalization;
+    private bool _normalizeEmail;
+    private string _nullTokens = string.Empty;
+    private string _countryAliases = string.Empty;
+    private bool _normalizeDate;
+    private bool _normalizeDecimal;
 
     public ColumnProfileViewModel(int columnIndex, ColumnProfile profile, Action mappingChanged)
     {
@@ -26,13 +35,16 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
         _mappingChanged = mappingChanged;
         _targetField = profile.ColumnName;
         _validateEmail = profile.SemanticType == DataCleaner.Domain.Data.SemanticType.Email;
+        _normalizeEmail = profile.SemanticType == DataCleaner.Domain.Data.SemanticType.Email;
+        _normalizeDate = profile.DataType == DataCleaner.Domain.Data.DataType.Date;
+        _normalizeDecimal = profile.DataType == DataCleaner.Domain.Data.DataType.Decimal;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public int ColumnIndex { get; }
 
-    public ColumnProfile Profile { get; }
+    public ColumnProfile Profile { get; private set; }
 
     public string SourceColumn => Profile.ColumnName;
 
@@ -56,6 +68,9 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<ValidationSeverity> AvailableSeverities { get; } =
         Enum.GetValues<ValidationSeverity>();
+
+    public IReadOnlyList<TextCaseNormalization> AvailableCaseNormalizations { get; } =
+        Enum.GetValues<TextCaseNormalization>();
 
     public string TargetField
     {
@@ -130,6 +145,54 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
         set => SetConfigurationField(ref _severity, value);
     }
 
+    public bool TrimText
+    {
+        get => _trimText;
+        set => SetConfigurationField(ref _trimText, value);
+    }
+
+    public bool NormalizeWhitespace
+    {
+        get => _normalizeWhitespace;
+        set => SetConfigurationField(ref _normalizeWhitespace, value);
+    }
+
+    public TextCaseNormalization CaseNormalization
+    {
+        get => _caseNormalization;
+        set => SetConfigurationField(ref _caseNormalization, value);
+    }
+
+    public bool NormalizeEmail
+    {
+        get => _normalizeEmail;
+        set => SetConfigurationField(ref _normalizeEmail, value);
+    }
+
+    public string NullTokens
+    {
+        get => _nullTokens;
+        set => SetConfigurationField(ref _nullTokens, value ?? string.Empty);
+    }
+
+    public string CountryAliases
+    {
+        get => _countryAliases;
+        set => SetConfigurationField(ref _countryAliases, value ?? string.Empty);
+    }
+
+    public bool NormalizeDate
+    {
+        get => _normalizeDate;
+        set => SetConfigurationField(ref _normalizeDate, value);
+    }
+
+    public bool NormalizeDecimal
+    {
+        get => _normalizeDecimal;
+        set => SetConfigurationField(ref _normalizeDecimal, value);
+    }
+
     public void ResetValidationConfiguration()
     {
         ValidateType = false;
@@ -140,6 +203,33 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
         MaximumAllowed = null;
         AllowedValues = string.Empty;
         Severity = ValidationSeverity.Error;
+    }
+
+    public void ResetCleaningConfiguration()
+    {
+        TrimText = false;
+        NormalizeWhitespace = false;
+        CaseNormalization = TextCaseNormalization.None;
+        NormalizeEmail = false;
+        NullTokens = string.Empty;
+        CountryAliases = string.Empty;
+        NormalizeDate = false;
+        NormalizeDecimal = false;
+    }
+
+    public void UpdateProfile(ColumnProfile profile)
+    {
+        Profile = profile;
+        OnPropertyChanged(nameof(Profile));
+        OnPropertyChanged(nameof(TechnicalType));
+        OnPropertyChanged(nameof(SemanticType));
+        OnPropertyChanged(nameof(EmptyCount));
+        OnPropertyChanged(nameof(UniqueCount));
+        OnPropertyChanged(nameof(DuplicateCount));
+        OnPropertyChanged(nameof(InvalidCount));
+        OnPropertyChanged(nameof(Minimum));
+        OnPropertyChanged(nameof(Maximum));
+        OnPropertyChanged(nameof(Average));
     }
 
     private void SetConfigurationField<T>(
@@ -164,4 +254,7 @@ public sealed class ColumnProfileViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         return true;
     }
+
+    private void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

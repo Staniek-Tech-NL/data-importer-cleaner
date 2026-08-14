@@ -32,7 +32,7 @@ Validation and cleaning remain separate. The validation engine can run before an
 | XLSX import and worksheet selection | Complete | M2 |
 | Data profiling and column mapping | Complete | M3 |
 | Validation engine | Complete | M4 |
-| Cleaning engine and before/after review | Planned | M5 |
+| Cleaning engine and before/after review | Complete | M5 |
 | Deterministic duplicate detection | Planned | M6 |
 | CSV/XLSX/SQLite export and history | Planned | M7 |
 | Portfolio release | Planned | M8 |

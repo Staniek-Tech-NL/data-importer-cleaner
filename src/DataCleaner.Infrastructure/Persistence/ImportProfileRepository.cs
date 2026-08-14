@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DataCleaner.Application.Abstractions;
+using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Profiles;
 using DataCleaner.Domain.Validation;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             .AsNoTracking()
             .Include(profile => profile.ColumnMappings)
             .Include(profile => profile.ValidationRules)
+            .Include(profile => profile.CleaningRules)
             .OrderBy(profile => profile.Name)
             .ToArrayAsync(cancellationToken);
         return entities.Select(ToDomain).ToArray();
@@ -28,6 +30,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             .AsNoTracking()
             .Include(profile => profile.ColumnMappings)
             .Include(profile => profile.ValidationRules)
+            .Include(profile => profile.CleaningRules)
             .SingleOrDefaultAsync(profile => profile.Id == id, cancellationToken);
         return entity is null ? null : ToDomain(entity);
     }
@@ -38,6 +41,7 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
         var entity = await dbContext.ImportProfiles
             .Include(candidate => candidate.ColumnMappings)
             .Include(candidate => candidate.ValidationRules)
+            .Include(candidate => candidate.CleaningRules)
             .SingleOrDefaultAsync(candidate => candidate.Id == profile.Id, cancellationToken);
 
         if (entity is null)
@@ -126,6 +130,38 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
                 definition.AllowedValues.ToArray()));
         }
 
+        var existingCleaningRules = entity.CleaningRules.ToArray();
+        for (var index = profile.CleaningRules.Count; index < existingCleaningRules.Length; index++)
+        {
+            dbContext.CleaningRuleConfigurations.Remove(existingCleaningRules[index]);
+        }
+
+        for (var index = 0; index < profile.CleaningRules.Count; index++)
+        {
+            var definition = profile.CleaningRules[index];
+            var ruleEntity = index < existingCleaningRules.Length
+                ? existingCleaningRules[index]
+                : new CleaningRuleConfigurationEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ImportProfileId = profile.Id,
+                    RuleCode = string.Empty,
+                    ConfigurationJson = string.Empty
+                };
+            if (index >= existingCleaningRules.Length)
+            {
+                entity.CleaningRules.Add(ruleEntity);
+                dbContext.CleaningRuleConfigurations.Add(ruleEntity);
+            }
+
+            ruleEntity.RuleCode = definition.Kind.ToString();
+            ruleEntity.ExecutionOrder = definition.ExecutionOrder;
+            ruleEntity.ConfigurationJson = JsonSerializer.Serialize(new CleaningConfiguration(
+                definition.SourceColumn,
+                definition.Values.ToArray(),
+                definition.Aliases.ToDictionary(alias => alias.Key, alias => alias.Value)));
+        }
+
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -155,6 +191,9 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
                 mapping.IsIgnored)),
         entity.ValidationRules
             .OrderBy(rule => rule.Id)
+            .Select(ToDomain),
+        entity.CleaningRules
+            .OrderBy(rule => rule.ExecutionOrder)
             .Select(ToDomain));
 
     private static ValidationRuleDefinition ToDomain(ValidationRuleConfigurationEntity entity)
@@ -176,9 +215,31 @@ internal sealed class ImportProfileRepository(DataCleanerDbContext dbContext) : 
             configuration.AllowedValues);
     }
 
+    private static CleaningRuleDefinition ToDomain(CleaningRuleConfigurationEntity entity)
+    {
+        var configuration = JsonSerializer.Deserialize<CleaningConfiguration>(entity.ConfigurationJson)
+            ?? throw new InvalidDataException("A persisted cleaning rule has invalid configuration.");
+        if (!Enum.TryParse<CleaningRuleKind>(entity.RuleCode, out var kind))
+        {
+            throw new InvalidDataException("A persisted cleaning rule has an unknown kind.");
+        }
+
+        return new CleaningRuleDefinition(
+            configuration.SourceColumn,
+            kind,
+            entity.ExecutionOrder,
+            configuration.Values,
+            configuration.Aliases);
+    }
+
     private sealed record ValidationConfiguration(
         string SourceColumn,
         decimal? Minimum,
         decimal? Maximum,
         string[] AllowedValues);
+
+    private sealed record CleaningConfiguration(
+        string SourceColumn,
+        string[] Values,
+        Dictionary<string, string> Aliases);
 }

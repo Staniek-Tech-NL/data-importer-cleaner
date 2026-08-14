@@ -302,6 +302,80 @@
                         </DataGrid>
                     </Grid>
                 </TabItem>
+
+                <TabItem Header="Cleaning"
+                         IsEnabled="{Binding HasColumnProfiles}">
+                    <Grid Margin="14">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="230" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,12">
+                            <Button Width="140"
+                                    Height="36"
+                                    DockPanel.Dock="Right"
+                                    IsEnabled="{Binding IsImportEnabled}"
+                                    Click="RunCleaning_Click"
+                                    Content="Run cleaning" />
+                            <TextBlock VerticalAlignment="Center"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="#0F172A"
+                                       Text="{Binding CleaningSummary}" />
+                        </DockPanel>
+
+                        <DataGrid Grid.Row="1"
+                                  ItemsSource="{Binding ColumnProfiles}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  GridLinesVisibility="Horizontal"
+                                  FrozenColumnCount="1">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="150" Header="Source column" IsReadOnly="True" Binding="{Binding SourceColumn}" />
+                                <DataGridCheckBoxColumn Width="65" Header="Trim" Binding="{Binding TrimText, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="90" Header="Whitespace" Binding="{Binding NormalizeWhitespace, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTemplateColumn Width="90" Header="Case">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding AvailableCaseNormalizations}"
+                                                      SelectedItem="{Binding CaseNormalization, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridCheckBoxColumn Width="70" Header="Email" Binding="{Binding NormalizeEmail, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="170" Header="Null tokens" Binding="{Binding NullTokens, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridTextColumn Width="260" Header="Country aliases (NL=Netherlands)" Binding="{Binding CountryAliases, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="70" Header="Date" Binding="{Binding NormalizeDate, UpdateSourceTrigger=PropertyChanged}" />
+                                <DataGridCheckBoxColumn Width="75" Header="Decimal" Binding="{Binding NormalizeDecimal, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,12,0,6"
+                                   FontWeight="SemiBold"
+                                   Text="Before / after review" />
+                        <DataGrid Grid.Row="3"
+                                  ItemsSource="{Binding CleaningChanges}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  GridLinesVisibility="Horizontal">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="65" Header="Row" Binding="{Binding RowNumber}" />
+                                <DataGridTextColumn Width="130" Header="Column" Binding="{Binding ColumnName}" />
+                                <DataGridTextColumn Width="130" Header="Rule" Binding="{Binding Rule}" />
+                                <DataGridTextColumn Width="180" Header="Before" Binding="{Binding BeforeValue}" />
+                                <DataGridTextColumn Width="180" Header="After" Binding="{Binding AfterValue}" />
+                                <DataGridTextColumn Width="*" Header="Description" Binding="{Binding Description}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
 

@@ -10,3 +10,5 @@
 8. Application persistence contains configuration and processing metadata, not full customer datasets by default.
 9. Warning and informational issues do not reject a row; error-severity issues mark it invalid and rejected.
 10. Re-running validation replaces validation-related row states while preserving unrelated states such as modified or duplicate.
+11. Cleaning rules operate only on current working values and preserve both source and parsed values.
+12. Cleaning order is explicit and every effective change is included in the before/after review.

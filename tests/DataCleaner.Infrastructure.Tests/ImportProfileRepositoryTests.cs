@@ -1,4 +1,5 @@
 using DataCleaner.Application.Abstractions;
+using DataCleaner.Domain.Cleaning;
 using DataCleaner.Domain.Profiles;
 using DataCleaner.Infrastructure;
 using DataCleaner.Infrastructure.Persistence;
@@ -47,6 +48,21 @@ public sealed class ImportProfileRepositoryTests
                         "Email",
                         ValidationRuleKind.Email,
                         ValidationSeverity.Warning)
+                ],
+                cleaningRules:
+                [
+                    new CleaningRuleDefinition("Email", CleaningRuleKind.Trim, 0),
+                    new CleaningRuleDefinition("Email", CleaningRuleKind.NormalizeEmail, 1),
+                    new CleaningRuleDefinition(
+                        "Email",
+                        CleaningRuleKind.NullTokens,
+                        2,
+                        ["N/A", "NULL"]),
+                    new CleaningRuleDefinition(
+                        "Email",
+                        CleaningRuleKind.CountryAlias,
+                        3,
+                        aliases: new Dictionary<string, string> { ["NL"] = "Netherlands" })
                 ]);
             await repository.SaveAsync(profile);
 
@@ -59,6 +75,13 @@ public sealed class ImportProfileRepositoryTests
             Assert.Equal("PrimaryEmail", Assert.Single(restored.ColumnMappings).TargetField);
             Assert.Equal(2, restored.ValidationRules.Count);
             Assert.Contains(restored.ValidationRules, rule => rule.Kind == ValidationRuleKind.Email);
+            Assert.Equal(4, restored.CleaningRules.Count);
+            Assert.Equal(CleaningRuleKind.Trim, restored.CleaningRules[0].Kind);
+            Assert.Contains(restored.CleaningRules, rule =>
+                rule.Kind == CleaningRuleKind.NullTokens && rule.Values.Contains("NULL"));
+            Assert.Contains(restored.CleaningRules, rule =>
+                rule.Kind == CleaningRuleKind.CountryAlias
+                && rule.Aliases.GetValueOrDefault("NL") == "Netherlands");
             Assert.Single(all);
         }
         finally

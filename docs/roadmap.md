@@ -4,8 +4,8 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M5 — Cleaning
-**Completed milestone:** M4 — Validation
+**Current milestone:** M6 — Deduplication
+**Completed milestone:** M5 — Cleaning
 **Release status:** no public binary release yet
 
 ## Version plan
@@ -38,10 +38,10 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ### v0.4.0 — Cleaning
 
-- deterministic text, email and null normalization;
-- configurable country aliases;
-- culture-aware date and decimal normalization;
-- before/after review.
+- [x] deterministic text, email and null normalization;
+- [x] configurable country aliases;
+- [x] culture-aware date and decimal normalization;
+- [x] before/after review.
 
 ### v0.5.0 — Deduplication
 
