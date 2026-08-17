@@ -23,7 +23,8 @@ This directory contains the maintained project documentation. The source code is
 
 - [GitHub project management](github-project-management.md) — milestones, labels and branch policy.
 - [Release process](release-process.md) — versioning, packaging and publication checklist.
-- [RC1 release notes](releases/v0.9.0-rc.1.md) — verified scope and known limitations.
+- [v1.0.0 release notes](releases/v1.0.0.md) — stable package evidence and known limitations.
+- [RC1 release notes](releases/v0.9.0-rc.1.md) — release-candidate verification history.
 
 ## Documentation maintenance
 

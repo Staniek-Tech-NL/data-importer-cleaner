@@ -32,4 +32,4 @@ Input files are opened read-only and export always creates a new destination. So
 
 ## Current release boundary
 
-Version 0.9.0-rc.1 is the completed portfolio release candidate for Windows 10/11 x64. The source is available for inspection but remains all-rights-reserved; it is not offered under an open-source license. The package, automated tests, performance workflow and real WPF screenshots were verified locally. A separate clean-Windows installation test was consciously waived, so the project makes no independent clean-machine verification claim.
+Version 1.0.0 is the locally verified stable portfolio release build for Windows 10/11 x64. The source is available for inspection but remains all-rights-reserved; it is not offered under an open-source license. The package, automated tests, performance workflow and real WPF screenshots were verified locally. A separate clean-Windows installation test was consciously waived, so the project makes no independent clean-machine verification claim.

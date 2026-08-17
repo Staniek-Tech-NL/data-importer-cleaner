@@ -3,7 +3,7 @@
 Data Importer & Cleaner is a Windows desktop application for turning inconsistent CSV and Excel files into clean, validated and reusable business data through a safe, reviewable workflow.
 
 > [!IMPORTANT]
-> Version 0.9.0-rc.1 is the locally verified release candidate. M1–M8 are complete; there is no public end-user release yet.
+> Version 1.0.0 is the locally verified stable release build. M1–M8 are complete; public GitHub publication is pending.
 
 ## Why this project exists
 
@@ -123,9 +123,9 @@ samples/
   synthetic-customers.csv
 ```
 
-## Verified release candidate
+## Verified stable release
 
-The self-contained `win-x64` package does not require a separately installed .NET runtime. The local M8 verification produced a 67.86 MiB ZIP, a zero-warning Release build and 55 passing tests. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md).
+The self-contained `win-x64` package does not require a separately installed .NET runtime. The local verification produced a zero-warning Release build and 55 passing tests. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md). Package size and SHA-256 are recorded in the [v1.0.0 release notes](docs/releases/v1.0.0.md).
 
 Use [synthetic-customers.csv](samples/synthetic-customers.csv) for a safe first run. It intentionally contains whitespace, country aliases, invalid values and duplicates. Generate larger deterministic samples with `scripts/Generate-SyntheticDataset.ps1`.
 
@@ -177,6 +177,7 @@ Start with the [documentation index](docs/README.md). Key documents include:
 - [Release process](docs/release-process.md)
 - [Performance evidence](docs/performance.md)
 - [Portfolio case study](docs/portfolio-case-study.md)
+- [v1.0.0 release notes](docs/releases/v1.0.0.md)
 - [RC1 release notes](docs/releases/v0.9.0-rc.1.md)
 
 ## Contributing and support

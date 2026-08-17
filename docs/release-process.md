@@ -10,7 +10,7 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 
 ## Pre-release checklist
 
-- [ ] The intended milestone is complete and remaining work is moved explicitly.
+- [x] The intended milestone is complete and remaining work is moved explicitly.
 - [x] `CHANGELOG.md` contains user-visible changes and known limitations.
 - [x] The version is consistent across release metadata.
 - [x] Release build completes with zero warnings and zero errors.
@@ -18,8 +18,8 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 - [x] Database migration behavior is tested.
 - [x] No real customer data, local databases, secrets or logs are included.
 - [x] README status and support matrix reflect the released build.
-- [x] Screenshots were captured from the real RC1 WPF views.
-- [ ] Installation and first-run instructions were tested on a clean Windows environment — explicitly waived for RC1; no clean-machine claim is made.
+- [x] Screenshots were captured from the real stable WPF views.
+- [ ] Installation and first-run instructions were tested on a clean Windows environment — explicitly waived for this portfolio release; no clean-machine claim is made.
 - [x] The repository has an explicit license before any public release.
 - [x] Security policy and release notes are ready to link from the release page.
 
@@ -29,7 +29,7 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 2. Confirm the protected-branch checks are green.
 3. Create an annotated semantic-version tag.
 4. Push the tag to trigger the release workflow.
-5. Verify the generated ZIP on a clean Windows environment.
+5. Verify the generated ZIP locally and either complete clean-Windows testing or disclose its explicit waiver.
 6. Publish or promote the GitHub release after smoke testing.
 7. Move the changelog to the released version and create the next `Unreleased` section.
 

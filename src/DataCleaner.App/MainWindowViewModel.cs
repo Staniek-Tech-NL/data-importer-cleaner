@@ -57,7 +57,7 @@ public sealed class MainWindowViewModel(
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string ApplicationName => "Data Importer & Cleaner · 0.9 RC1";
+    public string ApplicationName => "Data Importer & Cleaner · 1.0.0";
 
     public IReadOnlyList<string> AvailableEncodings { get; } = ["UTF-8", "Windows-1250"];
 
