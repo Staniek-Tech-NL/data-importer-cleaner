@@ -4,9 +4,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** none — v1.0.0 is published
+**Current milestone:** none — v1.0.1 is published
 **Completed milestone:** M8 — Portfolio release
-**Release status:** v1.0.0 published on GitHub
+**Release status:** v1.0.1 audit-hardening release published on GitHub
 
 ## Version plan
 
@@ -71,6 +71,16 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 - [x] locally verified downloadable Windows artifact;
 - [x] no known critical defects;
 - [x] public GitHub release.
+
+### v1.0.1 — Audit hardening
+
+- [x] deterministic data culture throughout the processing pipeline;
+- [x] saved-profile culture applied before parsing;
+- [x] explicit profile and culture selection before import;
+- [x] preview capped at 1,000 rows without limiting processing or export;
+- [x] App/ViewModel regression tests and per-assembly coverage gates;
+- [x] refreshed documentation, screenshots and dependency automation;
+- [x] public GitHub release built from the hardened code.
 
 ## Later candidates
 

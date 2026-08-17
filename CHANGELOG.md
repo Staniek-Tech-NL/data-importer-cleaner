@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-17
+
 ### Added
 
 - ViewModel regression tests for culture propagation, profile application, preview limits and export state.
