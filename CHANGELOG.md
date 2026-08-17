@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- ViewModel regression tests for culture propagation, profile application, preview limits and export state.
+- Per-assembly coverage baselines reported and enforced by CI.
+
+### Changed
+
+- Added an explicit data-culture selector and made saved-profile culture apply before import and throughout profiling, validation and cleaning.
+- Limited the WPF preview to 1,000 rows without limiting validation, cleaning, deduplication or export.
+- Updated stable-release documentation, accessibility metadata, contribution guidance and Dependabot grouping.
+- Updated official GitHub Actions to their current Node 24-compatible major versions.
+
 ## [1.0.0] - 2026-08-17
 
 ### Added

@@ -19,7 +19,7 @@ Data Importer & Cleaner is a local Windows workflow that keeps source values imm
 
 ## Evidence
 
-- 55 automated tests cover domain invariants, workflow orchestration, real file adapters, SQLite migrations and the complete 50,000-row synthetic pipeline.
+- 63 automated tests cover domain invariants, ViewModel and workflow orchestration, real file adapters, SQLite migrations and the complete 50,000-row synthetic pipeline.
 - Release builds treat analyzer warnings as errors and complete with zero warnings.
 - The verified 50,000-row pipeline completes in 2.853 seconds on the documented development machine.
 - A self-contained win-x64 RC1 package is produced by the same command shape used in the tag-driven GitHub Actions release workflow.

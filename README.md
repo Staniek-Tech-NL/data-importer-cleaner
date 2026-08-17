@@ -11,7 +11,7 @@ Business data often arrives with inconsistent headers, whitespace, date formats,
 
 The repository is also a portfolio case study in layered .NET desktop development, data processing, validation, persistence, automated testing and release engineering.
 
-## Planned workflow
+## Workflow
 
 ```text
 Import → Preview → Profile → Map → Pre-validation → Clean
@@ -104,6 +104,7 @@ src/
   DataCleaner.Infrastructure/
 
 tests/
+  DataCleaner.App.Tests/
   DataCleaner.Application.Tests/
   DataCleaner.Domain.Tests/
   DataCleaner.Infrastructure.Tests/
@@ -125,7 +126,7 @@ samples/
 
 ## Verified stable release
 
-The self-contained `win-x64` package does not require a separately installed .NET runtime. The local verification produced a zero-warning Release build and 55 passing tests. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md). Package size and SHA-256 are recorded in the [v1.0.0 release notes](docs/releases/v1.0.0.md).
+The self-contained `win-x64` package does not require a separately installed .NET runtime. The v1.0.0 release verification produced a zero-warning Release build and 55 passing tests; the current main branch adds eight ViewModel regression tests for 63 total. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md). Package size and SHA-256 are recorded in the [v1.0.0 release notes](docs/releases/v1.0.0.md).
 
 Download [DataImporterCleaner-v1.0.0-win-x64.zip](https://github.com/Staniek-Tech-NL/data-importer-cleaner/releases/download/v1.0.0/DataImporterCleaner-v1.0.0-win-x64.zip) together with its published [SHA-256 checksum](https://github.com/Staniek-Tech-NL/data-importer-cleaner/releases/download/v1.0.0/DataImporterCleaner-v1.0.0-win-x64.zip.sha256).
 
@@ -143,7 +144,7 @@ The required SDK feature band is pinned in [`global.json`](global.json).
 ## Getting started
 
 ```powershell
-git clone <repository-url>
+git clone https://github.com/Staniek-Tech-NL/data-importer-cleaner.git
 cd data-importer-cleaner
 dotnet tool restore
 dotnet restore
@@ -152,7 +153,7 @@ dotnet test --configuration Release --no-build --no-restore
 dotnet run --project src/DataCleaner.App/DataCleaner.App.csproj
 ```
 
-Replace `<repository-url>` after the repository has been published. The application creates its local SQLite database under the current user's local application-data directory.
+The application creates its local SQLite database under the current user's local application-data directory.
 
 ## Quality gates
 
@@ -184,7 +185,7 @@ Start with the [documentation index](docs/README.md). Key documents include:
 
 ## Contributing and support
 
-Contributions are welcome once the repository is public. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Use the supplied GitHub issue forms for reproducible bugs, scoped feature proposals and documentation improvements.
+Bug reports, scoped feature proposals and documentation corrections are welcome through the supplied GitHub issue forms. Because the source remains all-rights-reserved, code or documentation pull requests require prior written permission; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 For help choosing the correct channel, see [SUPPORT.md](SUPPORT.md). Please report security vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 

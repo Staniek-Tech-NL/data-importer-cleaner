@@ -1,7 +1,7 @@
 # Business rules
 
 1. The input file is read-only. Export always creates a separate output.
-2. Parsing requires an explicit culture whenever a value is ambiguous.
+2. Parsing requires an explicit data culture whenever a value is ambiguous. The selected culture is captured at import and reused by profiling, validation and cleaning; selecting a saved profile before import selects its persisted culture.
 3. A cleaning rule may change only the working value, never the source value.
 4. Validation issues identify the source row, column, rule, message and severity.
 5. Post-cleaning validation is required before export.

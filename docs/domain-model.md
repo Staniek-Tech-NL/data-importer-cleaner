@@ -6,7 +6,7 @@ Validation rules inspect cells and return issues without changing data. Cleaning
 
 Column profiling summarizes technical and semantic types, empty and repeated values, invalid values and numeric ranges without changing imported cells. The initial semantic classifier recognizes columns whose non-empty values are valid email addresses.
 
-An `ImportProfile` owns unique source-column mappings. Each mapping can rename a source column for downstream use or exclude it from the working preview. Profiles preserve culture settings, increment their version when configuration changes and are stored locally in SQLite.
+An `ImportProfile` owns unique source-column mappings. Each mapping can rename a source column for downstream use or exclude it from the working preview. Profiles preserve culture settings, increment their version when configuration changes and are stored locally in SQLite. Selecting a profile before import makes its culture the source of truth for parsing and all later processing passes.
 
 Validation definitions bind a rule kind and severity to a source column. Required, email, technical-type, numeric-range, allowed-value and uniqueness rules inspect current values without modifying them. A validation pass clears previous validation flags, records row/column issues and marks rows with coexisting valid, informational, warning, invalid and rejected states. Rows with error-severity issues are included in an in-memory rejected-row report.
 

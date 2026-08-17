@@ -28,3 +28,10 @@ updates:
       time: "06:30"
       timezone: Europe/Warsaw
     open-pull-requests-limit: 5
+    groups:
+      github-actions-compatible:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

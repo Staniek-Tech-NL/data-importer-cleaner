@@ -13,7 +13,7 @@ Verified locally on 2026-08-14 using Windows 10.0.26200, .NET SDK 10.0.400 and a
 | Cleaning | 163 ms |
 | Complete pipeline including validation, deduplication and CSV export | 2,853 ms |
 
-The automated budget is 30 seconds for 50,000 rows. This is a regression guard, not a cross-device speed guarantee. Disk, antivirus, processor, culture configuration, rule count and value complexity can change results. The WPF view model dispatches import, profiling, validation, cleaning, deduplication and export work away from the UI thread so the shell can continue repainting during these operations.
+The automated budget is 30 seconds for 50,000 rows. This is a regression guard, not a cross-device speed guarantee. Disk, antivirus, processor, culture configuration, rule count and value complexity can change results. The WPF view model dispatches import, profiling, validation, cleaning, deduplication and export work away from the UI thread so the shell can continue repainting during these operations. Its preview materializes at most the first 1,000 rows; validation, cleaning, deduplication and export still operate on the complete dataset.
 
 Run the measurement with:
 
