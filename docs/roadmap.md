@@ -4,9 +4,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** v1.0.0 publication
+**Current milestone:** none — v1.0.0 is published
 **Completed milestone:** M8 — Portfolio release
-**Release status:** locally verified v1.0.0 build; public GitHub release pending
+**Release status:** v1.0.0 published on GitHub
 
 ## Version plan
 
@@ -70,7 +70,7 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 - [x] signed-off documentation and release notes;
 - [x] locally verified downloadable Windows artifact;
 - [x] no known critical defects;
-- [ ] public GitHub release.
+- [x] public GitHub release.
 
 ## Later candidates
 

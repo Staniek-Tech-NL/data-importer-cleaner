@@ -14,7 +14,7 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 - [x] `CHANGELOG.md` contains user-visible changes and known limitations.
 - [x] The version is consistent across release metadata.
 - [x] Release build completes with zero warnings and zero errors.
-- [ ] All automated tests pass on GitHub Actions.
+- [x] All automated tests pass on GitHub Actions.
 - [x] Database migration behavior is tested.
 - [x] No real customer data, local databases, secrets or logs are included.
 - [x] README status and support matrix reflect the released build.

@@ -3,7 +3,7 @@
 Data Importer & Cleaner is a Windows desktop application for turning inconsistent CSV and Excel files into clean, validated and reusable business data through a safe, reviewable workflow.
 
 > [!IMPORTANT]
-> Version 1.0.0 is the locally verified stable release build. M1–M8 are complete; public GitHub publication is pending.
+> Version 1.0.0 is the published stable release. M1–M8 are complete and the self-contained Windows package is available from [GitHub Releases](https://github.com/Staniek-Tech-NL/data-importer-cleaner/releases/tag/v1.0.0).
 
 ## Why this project exists
 
@@ -126,6 +126,8 @@ samples/
 ## Verified stable release
 
 The self-contained `win-x64` package does not require a separately installed .NET runtime. The local verification produced a zero-warning Release build and 55 passing tests. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md). Package size and SHA-256 are recorded in the [v1.0.0 release notes](docs/releases/v1.0.0.md).
+
+Download [DataImporterCleaner-v1.0.0-win-x64.zip](https://github.com/Staniek-Tech-NL/data-importer-cleaner/releases/download/v1.0.0/DataImporterCleaner-v1.0.0-win-x64.zip) together with its published [SHA-256 checksum](https://github.com/Staniek-Tech-NL/data-importer-cleaner/releases/download/v1.0.0/DataImporterCleaner-v1.0.0-win-x64.zip.sha256).
 
 Use [synthetic-customers.csv](samples/synthetic-customers.csv) for a safe first run. It intentionally contains whitespace, country aliases, invalid values and duplicates. Generate larger deterministic samples with `scripts/Generate-SyntheticDataset.ps1`.
 
