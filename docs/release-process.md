@@ -18,8 +18,8 @@ The project follows semantic versioning. Before v1.0, minor versions may contain
 - [x] Database migration behavior is tested.
 - [x] No real customer data, local databases, secrets or logs are included.
 - [x] README status and support matrix reflect the released build.
-- [ ] Screenshots were captured from the released version.
-- [ ] Installation and first-run instructions were tested on a clean Windows environment.
+- [x] Screenshots were captured from the real RC1 WPF views.
+- [ ] Installation and first-run instructions were tested on a clean Windows environment — explicitly waived for RC1; no clean-machine claim is made.
 - [x] The repository has an explicit license before any public release.
 - [x] Security policy and release notes are ready to link from the release page.
 

@@ -24,6 +24,19 @@ dotnet run --project src/DataCleaner.App/DataCleaner.App.csproj
 
 Application state is stored under `%LOCALAPPDATA%\DataCleaner`. Imported business datasets must not be copied there unless a future feature explicitly requires it and the data-safety documentation is updated.
 
+## Regenerating portfolio screenshots
+
+The portfolio capture tool opens the real WPF window against an isolated SQLite database, runs the synthetic import, profiling, validation, cleaning, duplicate and export workflow, renders each selected view directly to PNG, and closes automatically. It is not included in the release package.
+
+```powershell
+dotnet run --project tools/DataCleaner.PortfolioCapture/DataCleaner.PortfolioCapture.csproj --configuration Release -- `
+  --demo samples/synthetic-customers.csv `
+  --capture-portfolio docs/images `
+  --data-directory artifacts/portfolio-capture-data
+```
+
+Use an empty data directory for every verification run. The capture performs a warm-up render before writing each final image.
+
 ## EF Core migrations
 
 Restore the repository-local tool before using EF commands:

@@ -4,9 +4,9 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 
 ## Current status
 
-**Current milestone:** M8 — Portfolio release
-**Completed milestone:** M7 — Export and history
-**Release status:** no public binary release yet
+**Current milestone:** none — the planned portfolio milestones are complete
+**Completed milestone:** M8 — Portfolio release
+**Release status:** locally verified RC1; no public binary release yet
 
 ## Version plan
 
@@ -61,7 +61,7 @@ The roadmap communicates intent, not a contractual delivery date. Scope may move
 - [x] complete automated test coverage for MVP behavior;
 - [x] accessibility and UI polish;
 - [x] synthetic demonstration datasets;
-- [ ] final released-build screenshot (blocked in the current automation environment);
+- [x] final UI screenshots generated from the real WPF views with synthetic data;
 - [x] portfolio case study and locally verified RC1 package.
 
 ### v1.0.0 — Stable portfolio release

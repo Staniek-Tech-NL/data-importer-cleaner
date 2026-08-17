@@ -50,4 +50,6 @@ All notable changes to this project will be documented in this file.
 - A 50,000-row end-to-end performance regression test and recorded benchmark evidence.
 - Background dispatch for long-running UI workflows plus keyboard and screen-reader metadata.
 - Synthetic demonstration data and a deterministic large-dataset generator.
+- The self-contained RC package includes the synthetic dataset for an immediate offline demo.
+- Automated WPF portfolio capture with isolated synthetic data, warm-up rendering and three verified screenshots.
 - Portfolio case study, RC1 release notes and an explicit all-rights-reserved license.

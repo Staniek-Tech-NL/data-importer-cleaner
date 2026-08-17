@@ -51,9 +51,18 @@ jobs:
           --no-restore
           --output artifacts/publish
 
+      - name: Stage release package
+        shell: pwsh
+        run: |
+          $packageName = "DataImporterCleaner-${{ github.ref_name }}-win-x64"
+          $packageRoot = Join-Path artifacts $packageName
+          New-Item -ItemType Directory -Path $packageRoot | Out-Null
+          Copy-Item -Path artifacts/publish/* -Destination $packageRoot -Recurse
+          Copy-Item -Path samples -Destination $packageRoot -Recurse
+
       - name: Create archive
         shell: pwsh
-        run: Compress-Archive -Path artifacts/publish/* -DestinationPath "artifacts/DataImporterCleaner-${{ github.ref_name }}-win-x64.zip"
+        run: Compress-Archive -Path "artifacts/DataImporterCleaner-${{ github.ref_name }}-win-x64" -DestinationPath "artifacts/DataImporterCleaner-${{ github.ref_name }}-win-x64.zip"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4

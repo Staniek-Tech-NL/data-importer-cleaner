@@ -3,7 +3,7 @@
 Data Importer & Cleaner is a Windows desktop application for turning inconsistent CSV and Excel files into clean, validated and reusable business data through a safe, reviewable workflow.
 
 > [!IMPORTANT]
-> Version 0.9.0-rc.1 is the locally verified release candidate. M1–M7 are complete and M8 publication checks are in progress; there is no public end-user release yet.
+> Version 0.9.0-rc.1 is the locally verified release candidate. M1–M8 are complete; there is no public end-user release yet.
 
 ## Why this project exists
 
@@ -20,6 +20,26 @@ Import → Preview → Profile → Map → Pre-validation → Clean
 
 Validation and cleaning remain separate. The validation engine can run before and after cleaning so that users can distinguish source problems from issues that remain in the final dataset.
 
+## Product tour
+
+### Data profiling and mapping
+
+![Data profiling and source-to-target mapping](docs/images/data-profiling.png)
+
+The profiling view combines inferred column statistics, validation settings and explicit source-to-target mappings in one reviewable step.
+
+### Cleaning before and after
+
+![Cleaning rules with before and after evidence](docs/images/cleaning-before-after.png)
+
+Every deterministic transformation is recorded with its row, column, rule, source value, resulting value and explanation.
+
+### Import summary and export history
+
+![Import summary and local export history](docs/images/import-summary.png)
+
+The final summary reports valid, invalid and modified rows and keeps a local record of the generated output without persisting imported row contents.
+
 ## Project status
 
 | Area | Status | Target milestone |
@@ -35,7 +55,7 @@ Validation and cleaning remain separate. The validation engine can run before an
 | Cleaning engine and before/after review | Complete | M5 |
 | Deterministic duplicate detection | Complete | M6 |
 | CSV/XLSX/SQLite export and history | Complete | M7 |
-| Portfolio release | In progress | M8 |
+| Portfolio release | Complete | M8 |
 
 See the [roadmap](docs/roadmap.md) and [project plan](docs/project-plan.md) for scope and delivery details.
 
@@ -105,7 +125,7 @@ samples/
 
 ## Verified release candidate
 
-The self-contained `win-x64` package does not require a separately installed .NET runtime. The local M8 verification produced a 65.74 MiB ZIP, a zero-warning Release build and 55 passing tests. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md).
+The self-contained `win-x64` package does not require a separately installed .NET runtime. The local M8 verification produced a 67.86 MiB ZIP, a zero-warning Release build and 55 passing tests. The archive includes `samples/synthetic-customers.csv`, enabling a download → unzip → run → try demo workflow without returning to the repository. The complete synthetic 50,000-row pipeline finished in 2.853 seconds on the documented development machine; see [performance evidence](docs/performance.md).
 
 Use [synthetic-customers.csv](samples/synthetic-customers.csv) for a safe first run. It intentionally contains whitespace, country aliases, invalid values and duplicates. Generate larger deterministic samples with `scripts/Generate-SyntheticDataset.ps1`.
 

@@ -24,6 +24,7 @@ Data Importer & Cleaner is a local Windows workflow that keeps source values imm
 - The verified 50,000-row pipeline completes in 2.853 seconds on the documented development machine.
 - A self-contained win-x64 RC1 package is produced by the same command shape used in the tag-driven GitHub Actions release workflow.
 - The committed demonstration file is synthetic and intentionally includes whitespace, aliases, invalid values and post-normalization duplicates.
+- Three screenshots are generated from the real WPF views through an isolated, deterministic portfolio workflow.
 
 ## Safety and privacy
 
@@ -31,4 +32,4 @@ Input files are opened read-only and export always creates a new destination. So
 
 ## Current release boundary
 
-Version 0.9.0-rc.1 is a portfolio release candidate for Windows 10/11 x64. The source is available for inspection but remains all-rights-reserved; it is not offered under an open-source license. Installation on a separate clean Windows machine and a final captured UI screenshot remain publication checks before promoting the candidate to v1.0.
+Version 0.9.0-rc.1 is the completed portfolio release candidate for Windows 10/11 x64. The source is available for inspection but remains all-rights-reserved; it is not offered under an open-source license. The package, automated tests, performance workflow and real WPF screenshots were verified locally. A separate clean-Windows installation test was consciously waived, so the project makes no independent clean-machine verification claim.
