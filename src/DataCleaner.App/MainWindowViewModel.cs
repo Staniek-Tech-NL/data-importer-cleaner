@@ -27,6 +27,8 @@ public sealed class MainWindowViewModel(
     IImportProfileRepository profileRepository,
     IImportHistoryRepository historyRepository) : INotifyPropertyChanged
 {
+    public const int PreviewRowLimit = 1000;
+
     private string _statusMessage = "Select a CSV file to inspect its contents safely.";
     private DataView? _preview;
     private string? _datasetSummary;
@@ -34,6 +36,8 @@ public sealed class MainWindowViewModel(
     private IReadOnlyList<string> _worksheetNames = [];
     private string? _selectedWorksheet;
     private string _selectedEncoding = "UTF-8";
+    private string _selectedCultureName = GetDefaultCultureName();
+    private string? _datasetCultureName;
     private string? _pendingFilePath;
     private ImportedDataset? _dataset;
     private IReadOnlyList<ImportProfile> _savedProfiles = [];
@@ -54,6 +58,7 @@ public sealed class MainWindowViewModel(
     private DateTimeOffset _importStartedAtUtc;
     private int _sourceRowCount;
     private int _duplicatesRemoved;
+    private bool _suppressConfigurationRefresh;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -61,11 +66,35 @@ public sealed class MainWindowViewModel(
 
     public IReadOnlyList<string> AvailableEncodings { get; } = ["UTF-8", "Windows-1250"];
 
+    public IReadOnlyList<string> AvailableCultureNames { get; } = BuildAvailableCultureNames();
+
     public string SelectedEncoding
     {
         get => _selectedEncoding;
         set => SetField(ref _selectedEncoding, value);
     }
+
+    public string SelectedCultureName
+    {
+        get => _selectedCultureName;
+        set
+        {
+            var normalizedValue = NormalizeCultureName(value);
+            if (!SetField(ref _selectedCultureName, normalizedValue))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(EffectiveCultureName));
+            if (_datasetCultureName is not null
+                && !string.Equals(_datasetCultureName, normalizedValue, StringComparison.OrdinalIgnoreCase))
+            {
+                StatusMessage = $"Data culture {normalizedValue} will apply on the next import. Re-import the source to use it for parsing.";
+            }
+        }
+    }
+
+    public string EffectiveCultureName => _datasetCultureName ?? SelectedCultureName;
 
     public string StatusMessage
     {
@@ -189,6 +218,10 @@ public sealed class MainWindowViewModel(
             if (SetField(ref _selectedProfile, value) && value is not null)
             {
                 ProfileName = value.Name;
+                if (!string.IsNullOrWhiteSpace(value.CultureName))
+                {
+                    SelectedCultureName = value.CultureName;
+                }
             }
         }
     }
@@ -346,7 +379,7 @@ public sealed class MainWindowViewModel(
                     StringComparison.OrdinalIgnoreCase))
                     ?? new ImportProfile(
                         ProfileName,
-                        CultureInfo.CurrentCulture.Name,
+                        EffectiveCultureName,
                         mappings,
                         validationRules,
                         cleaningRules);
@@ -355,7 +388,7 @@ public sealed class MainWindowViewModel(
         {
             profile.Rename(ProfileName);
             profile.UpdateConfiguration(
-                CultureInfo.CurrentCulture.Name,
+                EffectiveCultureName,
                 mappings,
                 validationRules: validationRules,
                 cleaningRules: cleaningRules);
@@ -381,113 +414,134 @@ public sealed class MainWindowViewModel(
             return;
         }
 
-        var mappings = SelectedProfile.ColumnMappings.ToDictionary(
+        var profile = SelectedProfile;
+        var requiresReimport = !string.IsNullOrWhiteSpace(profile.CultureName)
+            && !string.Equals(profile.CultureName, EffectiveCultureName, StringComparison.OrdinalIgnoreCase);
+        ApplyProfileConfiguration(profile);
+        StatusMessage = requiresReimport
+            ? $"Profile '{profile.Name}' applied. Re-import the source to parse it with profile culture {profile.CultureName}."
+            : $"Profile '{profile.Name}' version {profile.ProfileVersion} applied.";
+    }
+
+    private void ApplyProfileConfiguration(ImportProfile profile)
+    {
+        _suppressConfigurationRefresh = true;
+        try
+        {
+            var mappings = profile.ColumnMappings.ToDictionary(
             mapping => mapping.SourceColumn,
             StringComparer.OrdinalIgnoreCase);
-        foreach (var column in ColumnProfiles)
-        {
-            column.ResetValidationConfiguration();
-            column.ResetCleaningConfiguration();
-            if (mappings.TryGetValue(column.SourceColumn, out var mapping))
+            foreach (var column in ColumnProfiles)
             {
-                column.TargetField = mapping.TargetField ?? column.SourceColumn;
-                column.IsIgnored = mapping.IsIgnored;
-                column.IsDuplicateKey = mapping.IsDuplicateKey;
+                column.ResetValidationConfiguration();
+                column.ResetCleaningConfiguration();
+                if (mappings.TryGetValue(column.SourceColumn, out var mapping))
+                {
+                    column.TargetField = mapping.TargetField ?? column.SourceColumn;
+                    column.IsIgnored = mapping.IsIgnored;
+                    column.IsDuplicateKey = mapping.IsDuplicateKey;
+                }
+                else
+                {
+                    column.TargetField = column.SourceColumn;
+                    column.IsIgnored = false;
+                    column.IsDuplicateKey = false;
+                }
             }
-            else
+
+            foreach (var definition in profile.ValidationRules)
             {
-                column.TargetField = column.SourceColumn;
-                column.IsIgnored = false;
-                column.IsDuplicateKey = false;
+                var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
+                    candidate.SourceColumn,
+                    definition.SourceColumn,
+                    StringComparison.OrdinalIgnoreCase));
+                if (column is null)
+                {
+                    continue;
+                }
+
+                column.Severity = definition.Severity;
+                switch (definition.Kind)
+                {
+                    case ValidationRuleKind.Required:
+                        column.IsRequired = true;
+                        break;
+                    case ValidationRuleKind.Type:
+                        column.ValidateType = true;
+                        break;
+                    case ValidationRuleKind.Email:
+                        column.ValidateEmail = true;
+                        break;
+                    case ValidationRuleKind.Range:
+                        column.MinimumAllowed = definition.Minimum;
+                        column.MaximumAllowed = definition.Maximum;
+                        break;
+                    case ValidationRuleKind.AllowedValue:
+                        column.AllowedValues = string.Join(", ", definition.AllowedValues);
+                        break;
+                    case ValidationRuleKind.Unique:
+                        column.IsUnique = true;
+                        break;
+                }
+            }
+
+            foreach (var definition in profile.CleaningRules)
+            {
+                var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
+                    candidate.SourceColumn,
+                    definition.SourceColumn,
+                    StringComparison.OrdinalIgnoreCase));
+                if (column is null)
+                {
+                    continue;
+                }
+
+                switch (definition.Kind)
+                {
+                    case CleaningRuleKind.Trim:
+                        column.TrimText = true;
+                        break;
+                    case CleaningRuleKind.NormalizeWhitespace:
+                        column.NormalizeWhitespace = true;
+                        break;
+                    case CleaningRuleKind.UpperCase:
+                        column.CaseNormalization = TextCaseNormalization.Upper;
+                        break;
+                    case CleaningRuleKind.LowerCase:
+                        column.CaseNormalization = TextCaseNormalization.Lower;
+                        break;
+                    case CleaningRuleKind.TitleCase:
+                        column.CaseNormalization = TextCaseNormalization.Title;
+                        break;
+                    case CleaningRuleKind.NormalizeEmail:
+                        column.NormalizeEmail = true;
+                        break;
+                    case CleaningRuleKind.NullTokens:
+                        column.NullTokens = string.Join(", ", definition.Values);
+                        break;
+                    case CleaningRuleKind.CountryAlias:
+                        column.CountryAliases = string.Join(
+                            "; ",
+                            definition.Aliases.Select(alias => $"{alias.Key}={alias.Value}"));
+                        break;
+                    case CleaningRuleKind.NormalizeDate:
+                        column.NormalizeDate = true;
+                        break;
+                    case CleaningRuleKind.NormalizeDecimal:
+                        column.NormalizeDecimal = true;
+                        break;
+                }
             }
         }
-
-        foreach (var definition in SelectedProfile.ValidationRules)
+        finally
         {
-            var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
-                candidate.SourceColumn,
-                definition.SourceColumn,
-                StringComparison.OrdinalIgnoreCase));
-            if (column is null)
-            {
-                continue;
-            }
-
-            column.Severity = definition.Severity;
-            switch (definition.Kind)
-            {
-                case ValidationRuleKind.Required:
-                    column.IsRequired = true;
-                    break;
-                case ValidationRuleKind.Type:
-                    column.ValidateType = true;
-                    break;
-                case ValidationRuleKind.Email:
-                    column.ValidateEmail = true;
-                    break;
-                case ValidationRuleKind.Range:
-                    column.MinimumAllowed = definition.Minimum;
-                    column.MaximumAllowed = definition.Maximum;
-                    break;
-                case ValidationRuleKind.AllowedValue:
-                    column.AllowedValues = string.Join(", ", definition.AllowedValues);
-                    break;
-                case ValidationRuleKind.Unique:
-                    column.IsUnique = true;
-                    break;
-            }
+            _suppressConfigurationRefresh = false;
         }
 
-        foreach (var definition in SelectedProfile.CleaningRules)
-        {
-            var column = ColumnProfiles.FirstOrDefault(candidate => string.Equals(
-                candidate.SourceColumn,
-                definition.SourceColumn,
-                StringComparison.OrdinalIgnoreCase));
-            if (column is null)
-            {
-                continue;
-            }
-
-            switch (definition.Kind)
-            {
-                case CleaningRuleKind.Trim:
-                    column.TrimText = true;
-                    break;
-                case CleaningRuleKind.NormalizeWhitespace:
-                    column.NormalizeWhitespace = true;
-                    break;
-                case CleaningRuleKind.UpperCase:
-                    column.CaseNormalization = TextCaseNormalization.Upper;
-                    break;
-                case CleaningRuleKind.LowerCase:
-                    column.CaseNormalization = TextCaseNormalization.Lower;
-                    break;
-                case CleaningRuleKind.TitleCase:
-                    column.CaseNormalization = TextCaseNormalization.Title;
-                    break;
-                case CleaningRuleKind.NormalizeEmail:
-                    column.NormalizeEmail = true;
-                    break;
-                case CleaningRuleKind.NullTokens:
-                    column.NullTokens = string.Join(", ", definition.Values);
-                    break;
-                case CleaningRuleKind.CountryAlias:
-                    column.CountryAliases = string.Join(
-                        "; ",
-                        definition.Aliases.Select(alias => $"{alias.Key}={alias.Value}"));
-                    break;
-                case CleaningRuleKind.NormalizeDate:
-                    column.NormalizeDate = true;
-                    break;
-                case CleaningRuleKind.NormalizeDecimal:
-                    column.NormalizeDecimal = true;
-                    break;
-            }
-        }
-
+        ClearValidationResults();
+        ClearCleaningResults();
+        ClearDuplicateResults();
         RefreshPreview();
-        StatusMessage = $"Profile '{SelectedProfile.Name}' version {SelectedProfile.ProfileVersion} applied.";
     }
 
     public async Task RunValidationAsync()
@@ -517,7 +571,7 @@ public sealed class MainWindowViewModel(
                 _dataset,
                 definitions,
                 ValidationPass.BeforeCleaning,
-                CultureInfo.CurrentCulture.Name));
+                EffectiveCultureName));
             ApplyValidationResult(result);
             StatusMessage = result.Issues.Count == 0
                 ? "Validation complete. No issues found."
@@ -563,18 +617,18 @@ public sealed class MainWindowViewModel(
                 _dataset,
                 validationDefinitions,
                 ValidationPass.BeforeCleaning,
-                CultureInfo.CurrentCulture.Name));
+                EffectiveCultureName));
             var cleaningResult = await Task.Run(() => cleaningService.CleanAsync(
                 _dataset,
                 cleaningDefinitions,
-                CultureInfo.CurrentCulture.Name));
+                EffectiveCultureName));
             _dataset = cleaningResult.Dataset;
             await UpdateColumnProfilesAsync();
             var afterValidation = await Task.Run(() => validationService.ValidateAsync(
                 _dataset,
                 validationDefinitions,
                 ValidationPass.AfterCleaning,
-                CultureInfo.CurrentCulture.Name));
+                EffectiveCultureName));
             ApplyValidationResult(afterValidation);
 
             var columnNames = _dataset.Columns.ToDictionary(column => column.Id, column => column.SourceName);
@@ -633,7 +687,7 @@ public sealed class MainWindowViewModel(
                 string.Join(" | ", group.KeyValues.Select(value => FormatValue(value) ?? "∅")),
                 group.RowNumbers.Count)).ToArray();
             DuplicateSummary = $"{result.Detection.Groups.Count:N0} groups · {result.Detection.DuplicateRowCount:N0} matching rows · {result.RemovedRowNumbers.Count:N0} removed";
-            DatasetSummary = $"{_dataset.SourceName} · {_dataset.Rows.Count:N0} rows · {_dataset.Columns.Count:N0} columns";
+            DatasetSummary = FormatDatasetSummary(_dataset);
             await UpdateColumnProfilesAsync();
             UpdateProcessingSummary();
             RefreshPreview();
@@ -718,18 +772,21 @@ public sealed class MainWindowViewModel(
 
     private async Task ImportCoreAsync(string filePath, string? worksheetName)
     {
+        var importCultureName = SelectedCultureName;
         var request = new ImportRequest(
             filePath,
             worksheetName,
-            CultureInfo.CurrentCulture.Name,
+            importCultureName,
             SelectedEncoding);
         var dataset = await Task.Run(() => importService.ImportAsync(request));
         _dataset = dataset;
+        _datasetCultureName = importCultureName;
+        OnPropertyChanged(nameof(EffectiveCultureName));
         _currentImportId = Guid.NewGuid();
         _importStartedAtUtc = DateTimeOffset.UtcNow;
         _sourceRowCount = dataset.Rows.Count;
         _duplicatesRemoved = 0;
-        var profiles = await Task.Run(() => profilingService.Profile(dataset, CultureInfo.CurrentCulture.Name));
+        var profiles = await Task.Run(() => profilingService.Profile(dataset, EffectiveCultureName));
         ColumnProfiles.Clear();
         for (var index = 0; index < profiles.Count; index++)
         {
@@ -737,13 +794,19 @@ public sealed class MainWindowViewModel(
         }
 
         OnPropertyChanged(nameof(HasColumnProfiles));
-        ProfileName = Path.GetFileNameWithoutExtension(request.FilePath);
-        SelectedProfile = null;
-        ClearValidationResults();
-        ClearCleaningResults();
-        ClearDuplicateResults();
-        RefreshPreview();
-        DatasetSummary = $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns";
+        ProfileName = SelectedProfile?.Name ?? Path.GetFileNameWithoutExtension(request.FilePath);
+        if (SelectedProfile is not null)
+        {
+            ApplyProfileConfiguration(SelectedProfile);
+        }
+        else
+        {
+            ClearValidationResults();
+            ClearCleaningResults();
+            ClearDuplicateResults();
+            RefreshPreview();
+        }
+        DatasetSummary = FormatDatasetSummary(dataset);
         UpdateProcessingSummary();
         await SaveHistoryAsync("Imported");
         await ReloadHistoryAsync();
@@ -754,17 +817,18 @@ public sealed class MainWindowViewModel(
     {
         if (_dataset is not null)
         {
-            Preview = CreatePreview(_dataset, ColumnProfiles);
+            Preview = CreatePreview(_dataset, ColumnProfiles, EffectiveCultureName);
         }
     }
 
     private static DataView CreatePreview(
         ImportedDataset dataset,
-        IReadOnlyCollection<ColumnProfileViewModel> mappings)
+        IReadOnlyCollection<ColumnProfileViewModel> mappings,
+        string cultureName)
     {
         var table = new DataTable(dataset.SourceName)
         {
-            Locale = CultureInfo.CurrentCulture
+            Locale = CultureInfo.GetCultureInfo(cultureName)
         };
         var visibleMappings = mappings.Where(mapping => !mapping.IsIgnored).ToArray();
         var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -780,7 +844,7 @@ public sealed class MainWindowViewModel(
             table.Columns.Add(count == 1 ? baseName : $"{baseName} ({count})", typeof(object));
         }
 
-        foreach (var importedRow in dataset.Rows)
+        foreach (var importedRow in dataset.Rows.Take(PreviewRowLimit))
         {
             var row = table.NewRow();
             for (var index = 0; index < visibleMappings.Length; index++)
@@ -996,7 +1060,7 @@ public sealed class MainWindowViewModel(
             return;
         }
 
-        var profiles = await Task.Run(() => profilingService.Profile(_dataset, CultureInfo.CurrentCulture.Name));
+        var profiles = await Task.Run(() => profilingService.Profile(_dataset, EffectiveCultureName));
         for (var index = 0; index < profiles.Count && index < ColumnProfiles.Count; index++)
         {
             ColumnProfiles[index].UpdateProfile(profiles[index]);
@@ -1013,6 +1077,11 @@ public sealed class MainWindowViewModel(
 
     private void OnColumnConfigurationChanged()
     {
+        if (_suppressConfigurationRefresh)
+        {
+            return;
+        }
+
         ClearValidationResults();
         ClearCleaningResults();
         ClearDuplicateResults();
@@ -1123,6 +1192,32 @@ public sealed class MainWindowViewModel(
         var modified = _dataset.Rows.Count(row => row.State.HasFlag(RowState.Modified));
         ProcessingSummary = $"Source {_sourceRowCount:N0} · working {_dataset.Rows.Count:N0} · valid {_dataset.Rows.Count - invalid:N0} · invalid {invalid:N0} · modified {modified:N0} · duplicates removed {_duplicatesRemoved:N0}";
     }
+
+    private static string FormatDatasetSummary(ImportedDataset dataset)
+    {
+        var previewRows = Math.Min(dataset.Rows.Count, PreviewRowLimit);
+        var previewText = dataset.Rows.Count > PreviewRowLimit
+            ? $" · preview {previewRows:N0} of {dataset.Rows.Count:N0} rows"
+            : string.Empty;
+        return $"{dataset.SourceName} · {dataset.Rows.Count:N0} rows · {dataset.Columns.Count:N0} columns{previewText}";
+    }
+
+    private static string[] BuildAvailableCultureNames()
+    {
+        return CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+            .Select(culture => culture.Name)
+            .Append(GetDefaultCultureName())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string GetDefaultCultureName() => string.IsNullOrWhiteSpace(CultureInfo.CurrentCulture.Name)
+        ? "en-US"
+        : CultureInfo.CurrentCulture.Name;
+
+    private static string NormalizeCultureName(string? cultureName) =>
+        CultureInfo.GetCultureInfo(string.IsNullOrWhiteSpace(cultureName) ? GetDefaultCultureName() : cultureName).Name;
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

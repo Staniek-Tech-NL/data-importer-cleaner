@@ -1,6 +1,8 @@
 # Contributing
 
-Thank you for considering a contribution to Data Importer & Cleaner.
+Thank you for helping improve Data Importer & Cleaner. The repository is public for inspection, but its all-rights-reserved license does not grant permission to copy, modify or redistribute the source.
+
+Bug reports, feature proposals and documentation-correction reports are welcome. Submit a code or documentation change only after receiving prior written permission from the copyright holder. Opening a pull request does not grant a license to use the project outside the review process.
 
 ## Before you start
 
@@ -9,7 +11,7 @@ Thank you for considering a contribution to Data Importer & Cleaner.
 3. Open or comment on an issue before implementing a substantial change.
 4. Confirm that the proposal fits the current milestone and v1.0 scope.
 
-Small documentation corrections may be submitted directly.
+Small documentation corrections should normally be reported as an issue unless the maintainer has invited a pull request.
 
 ## Development setup
 
@@ -22,6 +24,8 @@ dotnet test DataCleaner.slnx --configuration Release --no-build --no-restore
 ```
 
 ## Pull requests
+
+Pull requests are accepted only when the maintainer has explicitly authorized the proposed change.
 
 A pull request should:
 

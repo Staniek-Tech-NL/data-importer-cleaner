@@ -6,6 +6,7 @@
     <Project Path="src/DataCleaner.Infrastructure/DataCleaner.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DataCleaner.App.Tests/DataCleaner.App.Tests.csproj" />
     <Project Path="tests/DataCleaner.Application.Tests/DataCleaner.Application.Tests.csproj" />
     <Project Path="tests/DataCleaner.Domain.Tests/DataCleaner.Domain.Tests.csproj" />
     <Project Path="tests/DataCleaner.Infrastructure.Tests/DataCleaner.Infrastructure.Tests.csproj" />
